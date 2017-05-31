@@ -30,8 +30,8 @@ class StringHelper
 
     public static function contains($haystack, $needle, bool $caseSensitive = true){
         if(!$caseSensitive){
-            return stripos($haystack, $needle);
+            return stripos($haystack, $needle) !== false;
         }
-        return strpos($haystack, $needle);
+        return strpos($haystack, $needle) !== false;
 }
 }
