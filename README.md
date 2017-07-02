@@ -1,5 +1,6 @@
 Utility classes for PHP
 =========================
+[![Build Status](https://travis-ci.org/Rehyved/php-utilities.svg?branch=master)](https://travis-ci.org/Rehyved/php-utilities)
 
 A set of PHP utilities used in Rehyved libraries to help out with some common operations.
 
