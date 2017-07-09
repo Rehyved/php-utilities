@@ -1,8 +1,16 @@
 <?php
 namespace Rehyved\utilities\mapper;
 
+use Doctrine\Common\Annotations\AnnotationReader;
+
 class ObjectMapper
 {
+    private $validators = array();
+
+    public function addValidator(IObjectMapperValidator $validator){
+        $this->validators[$validator->getAnnotation()] = $validator;
+    }
+
     /**
      * Map the provided array to an object of the provided type.
      * The prefix can be used to ignore certain values in the array.
@@ -13,7 +21,7 @@ class ObjectMapper
      * @param string $type The type of object to map to
      * @param string $prefix The key prefix that should be used when determining the property values. Values in the array with different prefixes are ignored.
      */
-    public static function mapArrayToType(array $array, string $type, string $prefix = "")
+    public function mapArrayToType(array $array, string $type, string $prefix = "")
     {
         $objectToFill = new $type();
         $reflectionClass = new \ReflectionClass($objectToFill);
@@ -52,6 +60,16 @@ class ObjectMapper
                     }
                     
                     //TODO: Validate against annotations.
+                    $annotationReader = new \DocBlockReader\Reader($reflectionClass->getName(), $setter->getName());
+                    $annotations = $annotationReader->getParameters();
+                    var_dump($annotations);
+                    foreach($annotations as $name => $annotationValue){
+                        if(!array_key_exists($name, $this->validators)){
+                            trigger_error("Ignoring annotation '$name' as there is now validator registered that handles this annotation.", \E_USER_NOTICE);
+                            continue;
+                        }
+                        $this->validators[$name]->validate($propertyValue, $annotationValue);
+                    }
 
                     $setter->invoke($objectToFill, $propertyValue);
                     $setterInvoked = true;

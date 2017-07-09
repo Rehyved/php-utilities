@@ -18,11 +18,16 @@ class User
         return $this->name;
     }
 
-    public function setFriends(array $friends){
+    /**
+    * @min 2
+    */
+    public function setFriends(array $friends)
+    {
         $this->friends = $friends;
     }
 
-    public function getFriends() : array {
+    public function getFriends() : array
+    {
         return $this->friends;
     }
 }
@@ -53,6 +58,25 @@ class TestClass
     }
 }
 
+class MinValidator implements IObjectMapperValidator
+{
+    public function getAnnotation() : string
+    {
+        return "min";
+    }
+
+    public function validate($value, $annotationParameter)
+    {
+        if (is_array($value) && count($value) < $annotationParameter) {
+            throw new \Exception();
+        } elseif (is_string($value) && \mb_strlen($value) < $annotationParameter) {
+            throw new \Exception();
+        } elseif (\is_numeric($value) && $value < $annotationParameter) {
+            throw new \Exception();
+        }
+    }
+}
+
 class ObjectMapperTest extends TestCase
 {
     public function testObjectMapper()
@@ -65,7 +89,9 @@ class ObjectMapperTest extends TestCase
             "test.user.friends" => $testFriends
         );
 
-        $output = ObjectMapper::mapArrayToType($testArray, TestClass::class, "test");
+        $mapper = new ObjectMapper();
+        $mapper->addValidator(new MinValidator());
+        $output = $mapper->mapArrayToType($testArray, TestClass::class, "test");
         $this->assertEquals("Test 1", $output->getName());
         $this->assertEquals("TestUser", $output->getUser()->getName());
         $this->assertEquals($testFriends, $output->getUser()->getFriends());
