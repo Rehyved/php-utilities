@@ -2,6 +2,7 @@
 namespace Rehyved\utilities\mapper;
 
 use Doctrine\Common\Annotations\AnnotationReader;
+use Rehyved\utilities\mapper\validator\IObjectMapperValidator;
 
 class ObjectMapper
 {
@@ -59,10 +60,9 @@ class ObjectMapper
                         throw new ObjectMappingException("The type for the property '$propertyName' (identified in array as '$key') is of invalid type, was '$type', expected '$propertyType'.");
                     }
                     
-                    //TODO: Validate against annotations.
                     $annotationReader = new \DocBlockReader\Reader($reflectionClass->getName(), $setter->getName());
                     $annotations = $annotationReader->getParameters();
-                    var_dump($annotations);
+                    
                     foreach($annotations as $name => $annotationValue){
                         if(!array_key_exists($name, $this->validators)){
                             trigger_error("Ignoring annotation '$name' as there is now validator registered that handles this annotation.", \E_USER_NOTICE);

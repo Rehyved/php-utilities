@@ -1,5 +1,5 @@
 <?php
-namespace Rehyved\utilities\mapper;
+namespace Rehyved\utilities\mapper\validator;
 
 interface IObjectMapperValidator
 {

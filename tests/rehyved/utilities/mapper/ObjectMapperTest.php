@@ -58,7 +58,7 @@ class TestClass
     }
 }
 
-class MinValidator implements IObjectMapperValidator
+class MinValidator implements \Rehyved\utilities\mapper\validator\IObjectMapperValidator
 {
     public function getAnnotation() : string
     {
