@@ -1,8 +1,8 @@
 <?php
-namespace Rehyved\utilities\mapper;
+namespace Rehyved\Utilities\Mapper;
 
 use Doctrine\Common\Annotations\AnnotationReader;
-use Rehyved\utilities\mapper\validator\IObjectMapperValidator;
+use Rehyved\Utilities\Mapper\validator\IObjectMapperValidator;
 
 class ObjectMapper
 {
@@ -15,9 +15,9 @@ class ObjectMapper
     /**
      * Map the provided array to an object of the provided type.
      * The prefix can be used to ignore certain values in the array.
-     * 
+     *
      * NOTE:Arrays of custom objects are currently not deserialized and will remain an array.
-     * 
+     *
      * @param array $array The array to fill the object with
      * @param string $type The type of object to map to
      * @param string $prefix The key prefix that should be used when determining the property values. Values in the array with different prefixes are ignored.
@@ -59,13 +59,13 @@ class ObjectMapper
                         $type = gettype($propertyValue);
                         throw new ObjectMappingException("The type for the property '$propertyName' (identified in array as '$key') is of invalid type, was '$type', expected '$propertyType'.");
                     }
-                    
+
                     $annotationReader = new \DocBlockReader\Reader($reflectionClass->getName(), $setter->getName());
                     $annotations = $annotationReader->getParameters();
-                    
+
                     foreach($annotations as $name => $annotationValue){
                         if(!array_key_exists($name, $this->validators)){
-                            trigger_error("Ignoring annotation '$name' as there is now validator registered that handles this annotation.", \E_USER_NOTICE);
+                            trigger_error("Ignoring annotation '$name' as there is now Validator registered that handles this annotation.", \E_USER_NOTICE);
                             continue;
                         }
                         $this->validators[$name]->validate($propertyValue, $annotationValue);

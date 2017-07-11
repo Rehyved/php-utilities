@@ -1,6 +1,6 @@
 <?php
 
-namespace Rehyved\utilities;
+namespace Rehyved\Utilities;
 
 
 class StringHelper

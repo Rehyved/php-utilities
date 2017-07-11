@@ -1,5 +1,5 @@
 <?php
-namespace Rehyved\utilities\mapper;
+namespace Rehyved\Utilities\Mapper;
 
 class ObjectMappingException extends \Exception
 {

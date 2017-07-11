@@ -1,5 +1,5 @@
 <?php
-namespace Rehyved\utilities\mapper;
+namespace Rehyved\Utilities\Mapper;
 
 use PHPUnit\Framework\TestCase;
 
@@ -58,7 +58,7 @@ class TestClass
     }
 }
 
-class MinValidator implements \Rehyved\utilities\mapper\validator\IObjectMapperValidator
+class MinValidator implements \Rehyved\Utilities\Mapper\validator\IObjectMapperValidator
 {
     public function getAnnotation() : string
     {
