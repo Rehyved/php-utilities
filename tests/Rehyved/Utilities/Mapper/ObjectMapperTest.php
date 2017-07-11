@@ -2,6 +2,7 @@
 namespace Rehyved\Utilities\Mapper;
 
 use PHPUnit\Framework\TestCase;
+use Rehyved\Utilities\Mapper\Validator\IObjectMapperValidator;
 
 class User
 {
@@ -58,7 +59,7 @@ class TestClass
     }
 }
 
-class MinValidator implements \Rehyved\Utilities\Mapper\validator\IObjectMapperValidator
+class MinValidator implements IObjectMapperValidator
 {
     public function getAnnotation() : string
     {
