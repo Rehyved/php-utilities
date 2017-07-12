@@ -4,7 +4,7 @@ namespace Rehyved\Utilities\Mapper;
 use Doctrine\Common\Annotations\AnnotationReader;
 use Rehyved\Utilities\Mapper\validator\IObjectMapperValidator;
 
-class ObjectMapper
+class ObjectMapper implements IObjectMapper
 {
     private $validators = array();
 
@@ -12,16 +12,6 @@ class ObjectMapper
         $this->validators[$validator->getAnnotation()] = $validator;
     }
 
-    /**
-     * Map the provided array to an object of the provided type.
-     * The prefix can be used to ignore certain values in the array.
-     *
-     * NOTE:Arrays of custom objects are currently not deserialized and will remain an array.
-     *
-     * @param array $array The array to fill the object with
-     * @param string $type The type of object to map to
-     * @param string $prefix The key prefix that should be used when determining the property values. Values in the array with different prefixes are ignored.
-     */
     public function mapArrayToType(array $array, string $type, string $prefix = "")
     {
         $objectToFill = new $type();
