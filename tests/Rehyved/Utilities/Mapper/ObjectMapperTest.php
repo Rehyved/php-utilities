@@ -19,7 +19,7 @@ class User
         $this->name = $name;
     }
 
-    public function getName(): string
+    public function getName()
     {
         return $this->name;
     }
@@ -33,7 +33,7 @@ class User
         $this->friends = $friends;
     }
 
-    public function getFriends(): array
+    public function getFriends()
     {
         return $this->friends;
     }
@@ -54,7 +54,7 @@ class TestClass
         $this->user = $user;
     }
 
-    public function getName(): string
+    public function getName()
     {
         return $this->name;
     }
