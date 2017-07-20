@@ -1,6 +1,6 @@
 <?php
 
-namespace Rehyved\Utilities\Mapper;
+namespace Rehyved\Utilities;
 
 
 use PHPUnit\Framework\TestCase;
