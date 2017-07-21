@@ -72,15 +72,16 @@ class ObjectMapperTest extends TestCase
         $testFriends = array(array("name" => "Test Friend 1"), array("name" => "Test Friend 2"));
         $testArray = array(
             "test_name" => "Test 1",
-            "name" => "Wrong name",
-            "test_user_name" => "TestUser",
-            "test_user_friends" => $testFriends
+            "test_user" => array(
+                "name" => "TestUser",
+                "friends" => $testFriends
+            )
         );
 
         $mapper = new ObjectMapper();
         $mapper->addValidator(new MinValidator());
         $mapper->addValidator(new RequiredValidator());
-        $output = $mapper->mapArrayToType($testArray, TestClass::class, "test");
+        $output = $mapper->mapArrayToObject($testArray, TestClass::class, "test");
 
         $this->assertEquals("Test 1", $output->getName());
         $this->assertEquals("TestUser", $output->getUser()->getName());
@@ -88,5 +89,6 @@ class ObjectMapperTest extends TestCase
         $this->assertEquals($testFriends[0]["name"], $output->getUser()->getFriends()[0]->getName());
         $this->assertEquals($testFriends[1]["name"], $output->getUser()->getFriends()[1]->getName());
 
+        $this->assertEquals($testArray, $mapper->mapObjectToArray($output, "test"));
     }
 }

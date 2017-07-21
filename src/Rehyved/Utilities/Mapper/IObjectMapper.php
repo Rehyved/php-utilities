@@ -8,7 +8,7 @@ interface IObjectMapper
 {
     /**
      * Adds the provided IObjectMapperValidator to the set of validators used while mapping classes.
-     * @see IObjectMapper::mapArrayToType()
+     * @see IObjectMapper::mapArrayToObject()
      * @param IObjectMapperValidator $validator
      * @return mixed
      */
@@ -20,9 +20,10 @@ interface IObjectMapper
      * to be filtered.
      *
      * By using annotations handled by the registered IObjectMapperValidator validators more validation outside of type
-     * checks can be performed
+     * checks can be performed.
      *
-     * NOTE:Arrays of custom objects are currently not deserialized and will remain an array.
+     * By using the 'arrayOf' annotation in the provided type's class for properties of type array the mapper will try
+     * to map this sub type recursively from the provided array.
      *
      * @param array $array The array to fill the object with
      * @param string $type The type of object to map to
@@ -32,5 +33,19 @@ interface IObjectMapper
      * @throws ObjectMappingException when there was an error while validating the type of the provided values in the
      * array or if there was a failed validation of one of the IObjectMapperValidator validators.
      */
-    public function mapArrayToType(array $array, string $type, string $prefix = "");
+    public function mapArrayToObject(array $array, string $type, string $prefix = "");
+
+
+    /**
+     * Maps the provided object to an array or returns the provided object if it was of a built-in primitive type
+     *
+     * By using the 'arrayOf' annotation in the object's class for properties of type array the mapper will map these to
+     * arrays recursively.
+     *
+     * @param mixed $object The object to map to an array
+     * @param string $prefix with which the array keys should be prefixed i.e. the name of the object/variable passed
+     * @return mixed either an array containing the properties of the object or the provided object if it had a built-in
+     * primitive type
+     */
+    public function mapObjectToArray($object, string $prefix = "");
 }

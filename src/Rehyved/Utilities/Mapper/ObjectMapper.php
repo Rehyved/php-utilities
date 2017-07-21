@@ -4,11 +4,43 @@ namespace Rehyved\Utilities\Mapper;
 
 use DocBlockReader\Reader;
 use Rehyved\Utilities\Mapper\validator\IObjectMapperValidator;
+use Rehyved\Utilities\StringHelper;
 
 class ObjectMapper implements IObjectMapper
 {
     const ARRAY_OF_TYPE_ANNOTATION = "arrayOf";
     const PATH_DELIMITER = "_";
+
+    private static $PHP_DOC_ANNOTATIONS = array(
+        "api",
+        "author",
+        "category",
+        "copyright",
+        "deprecated",
+        "example",
+        "filesource",
+        "global",
+        "ignore",
+        "internal",
+        "license",
+        "link",
+        "method",
+        "package",
+        "param",
+        "property",
+        "property-read",
+        "property-write",
+        "return",
+        "see",
+        "since",
+        "source",
+        "subpackage",
+        "throws",
+        "todo",
+        "uses",
+        "var",
+        "version"
+    );
 
     private $validators = array();
 
@@ -16,11 +48,11 @@ class ObjectMapper implements IObjectMapper
 
     public function addValidator(IObjectMapperValidator $validator, $failFastValidation = false)
     {
-        if ($validator->getAnnotation() === self::ARRAY_OF_TYPE_ANNOTATION) {
+        if (self::isExcludedAnnotation($validator->getAnnotation())) {
             throw new \InvalidArgumentException(
-                "Cannot add a validator with the name "
-                . self::ARRAY_OF_TYPE_ANNOTATION
-                . " this annotation name is used for indicating array object types. Choose a different "
+                "Cannot add a validator with the name '"
+                . $validator->getAnnotation()
+                . "' this annotation name is used for indicating array object types or part of general phpDoc specification. Choose a different "
                 . "annotation name for this validator."
             );
         }
@@ -28,7 +60,7 @@ class ObjectMapper implements IObjectMapper
         $this->failFastValidation = $failFastValidation;
     }
 
-    public function mapArrayToType(array $array, string $type, string $prefix = "")
+    public function mapArrayToObject(array $array, string $type, string $prefix = "")
     {
         return $this->doMapArrayToType($array, $type, $prefix, "");
     }
@@ -38,7 +70,7 @@ class ObjectMapper implements IObjectMapper
         $objectToFill = new $type();
         $reflectionClass = new \ReflectionClass($objectToFill);
 
-        $setters = array_filter($reflectionClass->getMethods(), "self::isSetter");
+        $setters = array_filter($reflectionClass->getMethods(\ReflectionMethod::IS_PUBLIC), "self::isSetter");
 
         if (empty($setters)) {
             throw new ObjectMappingException("The provided class does not contain any setters.");
@@ -59,8 +91,11 @@ class ObjectMapper implements IObjectMapper
             if ($propertyType !== null && self::isCustomType($propertyType)) {
                 try {
                     $customType = "" . $propertyType;
-                    $propertyValue = $this->doMapArrayToType($array, $customType, $propertyKey, "");
-
+                    if (array_key_exists($propertyKey, $array)) {
+                        $propertyValue = $this->doMapArrayToType($array[$propertyKey], $customType, "", "");
+                    } else {
+                        $propertyValue = $this->doMapArrayToType($array, $customType, $propertyKey, "");
+                    }
                     $this->checkAnnotations($propertyValue, $annotations, $propertyKey, $parentKey);
 
                     $setterInvoked |= $this->invokeSetter($objectToFill, $setter, $propertyValue);
@@ -140,6 +175,54 @@ class ObjectMapper implements IObjectMapper
         return $setterInvoked ? $objectToFill : null;
     }
 
+    /**
+     * Maps the provided object to an array or returns the provided object if it was of a built-in primitive type
+     *
+     * By using the 'arrayOf' annotation in the object's class for properties of type array the mapper will map these to
+     * arrays recursively.
+     *
+     * @param mixed $object The object to map to an array
+     * @param string $prefix with which the array keys should be prefixed i.e. the name of the object/variable passed
+     * @return mixed either an array containing the properties of the object or the provided object if it had a built-in
+     * primitive type
+     */
+    public function mapObjectToArray($object, string $prefix = "")
+    {
+        if (!is_object($object)) {
+            return $object;
+        }
+        if (get_class($object) === \stdClass::class) {
+            return (array)$object;
+        }
+
+        $objectClass = new \ReflectionClass($object);
+
+        $getters = array_filter($objectClass->getMethods(\ReflectionMethod::IS_PUBLIC), "self::isGetter");
+
+        $array = array();
+        foreach ($getters as $getter) {
+            $value = $getter->invoke($object);
+            if (empty($value)) {
+                continue;
+            }
+
+            $propertyName = self::getPropertyName($getter);
+            $propertyKey = empty($prefix) ? $propertyName : $prefix . self::PATH_DELIMITER . $propertyName;
+
+            if (is_array($value) && self::hasArrayOfTypeAnnotation($objectClass, $getter)) {
+                $items = array();
+                foreach ($value as $index => $item) {
+                    $items[] = $this->mapObjectToArray($item);
+                }
+                $array[$propertyKey] = $items;
+            } else {
+                $array[$propertyKey] = $this->mapObjectToArray($value);
+            }
+        }
+
+        return $array;
+    }
+
     private static function isOfValidType($value, $type)
     {
         // The gettype function will return double instead of float, however the type from reflection might come back as float.
@@ -158,22 +241,27 @@ class ObjectMapper implements IObjectMapper
         return $setter->getParameters()[0]->getType();
     }
 
-    private static function getPropertyName(\ReflectionMethod $setter)
+    private static function getPropertyName(\ReflectionMethod $setterOrGetter)
     {
-        $setterName = $setter->getName();
-        return strtoLower(substr($setterName, strlen("set")));
+        $methodName = $setterOrGetter->getName();
+        return strtoLower(substr($methodName, 3));
     }
 
     private static function isSetter(\ReflectionMethod $method)
     {
-        return stripos($method->getName(), "set") === 0 && $method->getNumberOfParameters() === 1;
+        return StringHelper::startsWith($method->getName(), "set") && $method->getNumberOfParameters() === 1;
+    }
+
+    private static function isGetter(\ReflectionMethod $method)
+    {
+        return StringHelper::startsWith($method->getName(), "get") && $method->getNumberOfParameters() === 0;
     }
 
     private function checkAnnotations($propertyValue, $annotations, $propertyKey, $parentKey)
     {
         $validationErrors = array();
         foreach ($annotations as $name => $annotationValue) {
-            if ($name === self::ARRAY_OF_TYPE_ANNOTATION) {
+            if (self::isExcludedAnnotation($name)) {
                 continue;
             }
             if (!array_key_exists($name, $this->validators)) {
@@ -193,6 +281,15 @@ class ObjectMapper implements IObjectMapper
         }
     }
 
+    private static function isExcludedAnnotation($name)
+    {
+        if ($name === self::ARRAY_OF_TYPE_ANNOTATION || in_array($name, self::$PHP_DOC_ANNOTATIONS)) {
+            return true;
+        }
+
+        return false;
+    }
+
     private function invokeSetter($objectToFill, $setter, $parameter): bool
     {
         if (!is_null($parameter)) {
@@ -200,5 +297,12 @@ class ObjectMapper implements IObjectMapper
             return true;
         }
         return false;
+    }
+
+    private static function hasArrayOfTypeAnnotation(\ReflectionClass $objectClass, \ReflectionMethod $getter): bool
+    {
+        $setterName = str_replace("get", "set", $getter->getName());
+        $annotationReader = new Reader($objectClass->getName(), $setterName);
+        return $annotationReader->getParameter(self::ARRAY_OF_TYPE_ANNOTATION) !== null;
     }
 }
