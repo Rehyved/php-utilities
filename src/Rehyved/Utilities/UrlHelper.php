@@ -103,13 +103,13 @@ class UrlHelper
     /**
      * Validates the given URL and returns the URL if valid. If not valid this will throw an InvalidArgumentException
      * @param string $url the URL to validate
-     * @throws InvalidArgumentException if the URL is not valid
+     * @throws \    InvalidArgumentException if the URL is not valid
      * @return string the validated URL
      */
     public static function validateUrl(string $url)
     {
         if (!UrlHelper::isValidUrl($url)) {
-            throw new InvalidArgumentException("The provided url is not valid: $url");
+            throw new \InvalidArgumentException("The provided url is not valid: $url");
         }
 
         return $url;

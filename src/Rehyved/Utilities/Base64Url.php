@@ -3,7 +3,7 @@
 namespace Rehyved\Utilities;
 
 
-class Base64UrlHelper
+class Base64Url
 {
     /**
      * Encodes the specified byte array.
