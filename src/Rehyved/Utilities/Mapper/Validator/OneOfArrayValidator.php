@@ -13,6 +13,9 @@ class OneOfArrayValidator implements IObjectMapperValidator
 
     public function validate($value, $array, $valueName = null)
     {
+        if($value === null){
+            return null;
+        }
         if (!is_array($array)) {
             throw new \InvalidArgumentException("The value used in the oneOf annotation is not an array. (name of value: '$valueName')");
         }
