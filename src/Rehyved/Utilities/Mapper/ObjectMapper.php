@@ -3,7 +3,13 @@
 namespace Rehyved\Utilities\Mapper;
 
 use DocBlockReader\Reader;
+use Rehyved\Utilities\Mapper\Validator\EmailAddressValidator;
 use Rehyved\Utilities\Mapper\validator\IObjectMapperValidator;
+use Rehyved\Utilities\Mapper\Validator\MaxValidator;
+use Rehyved\Utilities\Mapper\Validator\MinValidator;
+use Rehyved\Utilities\Mapper\Validator\OneOfArrayValidator;
+use Rehyved\Utilities\Mapper\Validator\RegexValidator;
+use Rehyved\Utilities\Mapper\Validator\RequiredValidator;
 use Rehyved\Utilities\StringHelper;
 
 class ObjectMapper implements IObjectMapper
@@ -45,6 +51,17 @@ class ObjectMapper implements IObjectMapper
     private $validators = array();
 
     private $failFastValidation;
+
+    public function __construct()
+    {
+        // Add default set of validators
+        $this->addValidator(new MinValidator());
+        $this->addValidator(new MaxValidator());
+        $this->addValidator(new RequiredValidator());
+        $this->addValidator(new RegexValidator());
+        $this->addValidator(new OneOfArrayValidator());
+        $this->addValidator(new EmailAddressValidator());
+    }
 
     public function addValidator(IObjectMapperValidator $validator, $failFastValidation = false)
     {
