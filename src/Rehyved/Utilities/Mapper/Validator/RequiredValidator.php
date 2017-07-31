@@ -1,18 +1,19 @@
 <?php
+
 namespace Rehyved\Utilities\Mapper\Validator;
 
 use Rehyved\Utilities\Mapper\Validator\Error\RequiredValidationError;
 
 class RequiredValidator implements IObjectMapperValidator
 {
-    public function getAnnotation() : string
+    public function getAnnotation(): string
     {
         return "required";
     }
 
     public function validate($value, $_, $valueName = null)
     {
-        if(empty($value) || $value === false){
+        if ($value === null) {
             return new RequiredValidationError($valueName, $value);
         }
 

@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 
 class EmailAddressValidatorTest extends TestCase
 {
-    public function getReturnsCorrectAnnotationString(){
+    public function testGetReturnsCorrectAnnotationString(){
         $emailAddressValidator = new EmailAddressValidator();
         $this->assertEquals("email", $emailAddressValidator->getAnnotation());
     }
