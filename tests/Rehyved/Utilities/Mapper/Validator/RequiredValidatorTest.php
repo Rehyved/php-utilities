@@ -7,12 +7,12 @@ use PHPUnit\Framework\TestCase;
 
 class RequiredValidatorTest extends TestCase
 {
-    public function testGetReturnsCorrectAnnotationString(){
+    public function testReturnsCorrectAnnotationString(){
         $requiredValidator = new RequiredValidator();
         $this->assertEquals("required", $requiredValidator->getAnnotation());
     }
 
-    public function testGetValidateShouldSucceedIfHasValue(){
+    public function testValidateShouldSucceedIfHasValue(){
         $requiredValidator = new RequiredValidator();
         $this->assertNull($requiredValidator->validate("", null));
         $this->assertNull($requiredValidator->validate(true, null));
@@ -24,7 +24,7 @@ class RequiredValidatorTest extends TestCase
         $this->assertNull($requiredValidator->validate(new \stdClass(), null));
     }
 
-    public function testGetValidateShouldFailIfNull(){
+    public function testValidateShouldFailIfNull(){
     $requiredValidator = new RequiredValidator();
     $this->assertNotNull($requiredValidator->validate(null, null));
 }

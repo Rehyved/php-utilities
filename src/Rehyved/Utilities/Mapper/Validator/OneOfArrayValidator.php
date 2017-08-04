@@ -20,7 +20,7 @@ class OneOfArrayValidator implements IObjectMapperValidator
             throw new \InvalidArgumentException("The value used in the oneOf annotation is not an array. (name of value: '$valueName')");
         }
 
-        if (!in_array($value, $array)) {
+        if (!in_array($value, $array, true)) {
             return new OneOfArrayValidationError($value, $value, $array);
         }
 

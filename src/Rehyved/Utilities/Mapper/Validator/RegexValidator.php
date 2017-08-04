@@ -12,12 +12,16 @@ class RegexValidator implements IObjectMapperValidator
 
     public function validate($value, $regex, $valueName = null)
     {
+        if($value === null){
+            return null;
+        }
+
         if(!is_string($value)){
-            throw new \InvalidArgumentException("The value checked on the regex annotation for regex '$regex' is not a valid string. (name of value '$valueName'");
+            throw new \InvalidArgumentException("The value checked on the regex annotation for regex '$regex' is not a valid string. (name of value '$valueName')");
         }
 
         if(!is_string($regex)){
-            throw new \InvalidArgumentException("The regex on the regex annotation is not a string and thus no regex. (name of value '$valueName'");
+            throw new \InvalidArgumentException("The regex on the regex annotation is not a string and thus no regex. (name of value '$valueName')");
         }
 
         if(preg_match($regex, $value) < 1){
