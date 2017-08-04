@@ -67,6 +67,9 @@ class TestClass
 
 class ObjectMapperTest extends TestCase
 {
+    /**
+     * Checks if the mapper can map from an array to an object, and back
+     */
     public function testObjectMapper()
     {
         $testFriends = array(array("name" => "Test Friend 1"), array("name" => "Test Friend 2"));
@@ -79,8 +82,6 @@ class ObjectMapperTest extends TestCase
         );
 
         $mapper = new ObjectMapper();
-        $mapper->addValidator(new MinValidator());
-        $mapper->addValidator(new RequiredValidator());
         $output = $mapper->mapArrayToObject($testArray, TestClass::class, "test");
 
         $this->assertEquals("Test 1", $output->getName());
@@ -90,5 +91,22 @@ class ObjectMapperTest extends TestCase
         $this->assertEquals($testFriends[1]["name"], $output->getUser()->getFriends()[1]->getName());
 
         $this->assertEquals($testArray, $mapper->mapObjectToArray($output, "test"));
+    }
+
+    public function testValidatorIsTriggered()
+    {
+        $testArray = array(
+            "test_name" => "Test 1",
+            "test_user" => array(
+                "name" => "TestUser",
+                "friends" => array()
+            )
+        );
+
+        $mapper = new ObjectMapper();
+
+        $this->expectException(ObjectMappingException::class);
+
+        $mapper->mapArrayToObject($testArray, TestClass::class, "test");
     }
 }
