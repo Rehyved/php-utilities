@@ -51,9 +51,13 @@ class ObjectMapper implements IObjectMapper
     private $validators = array();
 
     private $failFastValidation;
+    private $lenientTypeCheck;
 
     public function __construct()
     {
+        $this->failFastValidation = false;
+        $this->lenientTypeCheck = true;
+
         // Add default set of validators
         $this->addValidator(new MinValidator());
         $this->addValidator(new MaxValidator());
@@ -63,7 +67,23 @@ class ObjectMapper implements IObjectMapper
         $this->addValidator(new EmailAddressValidator());
     }
 
-    public function addValidator(IObjectMapperValidator $validator, $failFastValidation = false)
+    /**
+     * @param mixed $failFastValidation
+     */
+    public function setFailFastValidation($failFastValidation)
+    {
+        $this->failFastValidation = $failFastValidation;
+    }
+
+    /**
+     * @param mixed $lenientTypeCheck
+     */
+    public function setLenientTypeCheck($lenientTypeCheck)
+    {
+        $this->lenientTypeCheck = $lenientTypeCheck;
+    }
+
+    public function addValidator(IObjectMapperValidator $validator)
     {
         if (self::isExcludedAnnotation($validator->getAnnotation())) {
             throw new \InvalidArgumentException(
@@ -74,17 +94,6 @@ class ObjectMapper implements IObjectMapper
             );
         }
         $this->validators[$validator->getAnnotation()] = $validator;
-        $this->failFastValidation = $failFastValidation;
-    }
-
-    /**
-     * @param $value
-     * @param $type
-     * @return bool
-     */
-    private static function isOfCoercibleType($value, $type): bool
-    {
-        return ($type === "int" || $type === "double" && is_numeric($value));
     }
 
     public function mapArrayToObject(array $array, string $type, string $prefix = "")
@@ -257,6 +266,11 @@ class ObjectMapper implements IObjectMapper
         $type = $type === "float" ? "double" : "" . $type;
 
         return gettype($value) === $type || self::isOfCoercibleType($value, $type);
+    }
+
+    private static function isOfCoercibleType($value, $type): bool
+    {
+        return ($type === "int" || $type === "double" && is_numeric($value)) || ($type === "bool" && is_bool($value));
     }
 
     private static function isCustomType(\ReflectionType $propertyType)
