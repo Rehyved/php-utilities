@@ -77,6 +77,16 @@ class ObjectMapper implements IObjectMapper
         $this->failFastValidation = $failFastValidation;
     }
 
+    /**
+     * @param $value
+     * @param $type
+     * @return bool
+     */
+    private static function isOfCoercibleType($value, $type): bool
+    {
+        return ($type === "int" || $type === "double" && is_numeric($value));
+    }
+
     public function mapArrayToObject(array $array, string $type, string $prefix = "")
     {
         return $this->doMapArrayToType($array, $type, $prefix, "");
@@ -245,7 +255,8 @@ class ObjectMapper implements IObjectMapper
         // The gettype function will return double instead of float, however the type from reflection might come back as float.
         // See: http://php.net/manual/en/function.gettype.php
         $type = $type === "float" ? "double" : "" . $type;
-        return gettype($value) === $type;
+
+        return gettype($value) === $type || self::isOfCoercibleType($value, $type);
     }
 
     private static function isCustomType(\ReflectionType $propertyType)

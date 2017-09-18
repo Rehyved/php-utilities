@@ -3,6 +3,7 @@
 namespace Rehyved\Utilities\Mapper;
 
 use PHPUnit\Framework\TestCase;
+use Rehyved\Utilities\Mapper\Validator\Error\IValidationError;
 use Rehyved\Utilities\Mapper\Validator\MinValidator;
 use Rehyved\Utilities\Mapper\Validator\RequiredValidator;
 
@@ -10,6 +11,8 @@ class User
 {
     private $name;
     private $friends;
+
+    private $age;
 
     /**
      * @required
@@ -37,6 +40,25 @@ class User
     {
         return $this->friends;
     }
+
+    /**
+     * @return mixed
+     */
+    public function getAge(): int
+    {
+        return $this->age;
+    }
+
+    /**
+     * @required
+     * @param int $age
+     */
+    public function setAge(int $age)
+    {
+        $this->age = $age;
+    }
+
+
 }
 
 class TestClass
@@ -72,16 +94,18 @@ class ObjectMapperTest extends TestCase
      */
     public function testObjectMapper()
     {
-        $testFriends = array(array("name" => "Test Friend 1"), array("name" => "Test Friend 2"));
+        $testFriends = array(array("name" => "Test Friend 1", "age" => 25), array("name" => "Test Friend 2", "age" => "25"));
         $testArray = array(
             "test_name" => "Test 1",
             "test_user" => array(
                 "name" => "TestUser",
-                "friends" => $testFriends
+                "friends" => $testFriends,
+                "age" => "25"
             )
         );
 
         $mapper = new ObjectMapper();
+
         $output = $mapper->mapArrayToObject($testArray, TestClass::class, "test");
 
         $this->assertEquals("Test 1", $output->getName());
@@ -99,7 +123,8 @@ class ObjectMapperTest extends TestCase
             "test_name" => "Test 1",
             "test_user" => array(
                 "name" => "TestUser",
-                "friends" => array()
+                "friends" => array(),
+                "age" => 25
             )
         );
 
