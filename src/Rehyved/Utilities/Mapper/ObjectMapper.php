@@ -127,11 +127,11 @@ class ObjectMapper implements IObjectMapper
             if ($propertyType !== null && self::isCustomType($propertyType)) {
                 try {
                     $customType = "" . $propertyType;
+                    $propertyValue = null;
                     if (array_key_exists($propertyKey, $array)) {
                         $propertyValue = $this->doMapArrayToType($array[$propertyKey], $customType, "", "");
-                    } else {
-                        $propertyValue = $this->doMapArrayToType($array, $customType, $propertyKey, "");
                     }
+
                     $this->checkAnnotations($propertyValue, $annotations, $propertyKey, $parentKey);
 
                     $setterInvoked |= $this->invokeSetter($objectToFill, $setter, $propertyValue);
@@ -190,8 +190,11 @@ class ObjectMapper implements IObjectMapper
                         throw new ObjectMappingException("The type for the property '$propertyName' (identified in array as '$propertyKey') is of invalid type, was '$type', expected '$propertyType'.");
                     }
 
-                    $this->checkAnnotations($propertyValue, $annotations, $propertyKey, $parentKey);
+                    if (!empty($propertyType)) {
+                        $propertyValue = $this->coerceType($propertyValue, $propertyType);
+                    }
 
+                    $this->checkAnnotations($propertyValue, $annotations, $propertyKey, $parentKey);
 
                     $setterInvoked |= $this->invokeSetter($objectToFill, $setter, $propertyValue);
                 } catch (ObjectMappingException $e) {
@@ -209,6 +212,24 @@ class ObjectMapper implements IObjectMapper
         }
 
         return $setterInvoked ? $objectToFill : null;
+    }
+
+    private function coerceType($value, \ReflectionType $type)
+    {
+        switch ($type) {
+            case "double":
+            case "float":
+                return (float)$value;
+            case "int":
+                return (int)$value;
+            case "string":
+                return (string)$value;
+            case "array":
+                return (array)$value;
+            default:
+                return $value;
+
+        }
     }
 
     /**
@@ -238,7 +259,7 @@ class ObjectMapper implements IObjectMapper
         $array = array();
         foreach ($getters as $getter) {
             $value = $getter->invoke($object);
-            if (empty($value)) {
+            if ($value === null) {
                 continue;
             }
 

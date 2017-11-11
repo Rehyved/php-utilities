@@ -21,7 +21,7 @@ class OneOfArrayValidator implements IObjectMapperValidator
         }
 
         if (!in_array($value, $array, true)) {
-            return new OneOfArrayValidationError($value, $value, $array);
+            return new OneOfArrayValidationError($valueName, $value, $array);
         }
 
         return null;
