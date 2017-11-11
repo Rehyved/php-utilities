@@ -270,7 +270,7 @@ class ObjectMapper implements IObjectMapper
 
     private static function isOfCoercibleType($value, $type): bool
     {
-        return ($type === "int" || $type === "double" && is_numeric($value)) || ($type === "bool" && is_bool($value));
+        return (($type === "int" || $type === "double" || $type === "float") && is_numeric($value)) || ($type === "bool" && is_bool($value));
     }
 
     private static function isCustomType(\ReflectionType $propertyType)
@@ -286,7 +286,7 @@ class ObjectMapper implements IObjectMapper
     private static function getPropertyName(\ReflectionMethod $setterOrGetter)
     {
         $methodName = $setterOrGetter->getName();
-        return strtoLower(substr($methodName, 3));
+        return lcfirst(substr($methodName, 3));
     }
 
     private static function isSetter(\ReflectionMethod $method)
