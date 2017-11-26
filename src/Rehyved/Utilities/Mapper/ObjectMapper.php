@@ -96,6 +96,17 @@ class ObjectMapper implements IObjectMapper
         $this->validators[$validator->getAnnotation()] = $validator;
     }
 
+    /**
+     * Maps the provided array to an instance of the provided type.
+     * During mapping the validators are used to validate the parameters and values of the resulting object.
+     * Based on the fail fast validation setting this function will fail immediately or at the end with the mapping run
+     * with a list of validation errors.
+     *
+     * @param array $array The array containing the data to map to the object.
+     * @param string $type The type of the object of which an instance should be created and mapped to.
+     * @param string $prefix The prefix used in the array for the keys of the object.
+     * @return mixed An instance of the provided type.
+     */
     public function mapArrayToObject(array $array, string $type, string $prefix = "")
     {
         return $this->doMapArrayToType($array, $type, $prefix, "");
@@ -112,7 +123,6 @@ class ObjectMapper implements IObjectMapper
             throw new ObjectMappingException("The provided class does not contain any setters.");
         }
 
-        $setterInvoked = false;
         $validationErrors = array();
         foreach ($setters as $setter) {
 
@@ -124,22 +134,20 @@ class ObjectMapper implements IObjectMapper
             $annotationReader = new Reader($reflectionClass->getName(), $setter->getName());
             $annotations = $annotationReader->getParameters();
 
+
+            if (!array_key_exists($propertyKey, $array)) {
+                // TODO: call check annotations for getter to validate requirements
+                continue;
+            }
+
             if ($propertyType !== null && self::isCustomType($propertyType)) {
                 try {
                     $customType = "" . $propertyType;
-                    $propertyValue = null;
-                    if (array_key_exists($propertyKey, $array)) {
-                        $propertyValue = $this->doMapArrayToType($array[$propertyKey], $customType, "", "");
-                    }
+                    $propertyValue = $this->doMapArrayToType($array[$propertyKey], $customType, "", "");
 
                     $this->checkAnnotations($propertyValue, $annotations, $propertyKey, $parentKey);
 
-                    $setterInvoked |= $this->invokeSetter($objectToFill, $setter, $propertyValue);
-
-                    if (!is_null($propertyValue)) {
-                        $setter->invoke($objectToFill, $propertyValue);
-                        $setterInvoked = true;
-                    }
+                    $setter->invoke($objectToFill, $propertyValue);
                 } catch (ObjectMappingException $e) {
                     if (!$this->failFastValidation && !empty($e->getValidationErrors())) {
                         $validationErrors = array_merge($validationErrors, $e->getValidationErrors());
@@ -151,28 +159,27 @@ class ObjectMapper implements IObjectMapper
                 // TODO: support simple types
                 try {
                     $checkedArray = null;
-                    if (array_key_exists($propertyKey, $array)) {
-                        $valueType = $annotations[self::ARRAY_OF_TYPE_ANNOTATION];
 
-                        if (empty($valueType)) {
-                            throw new \InvalidArgumentException("The annotation '" . self::ARRAY_OF_TYPE_ANNOTATION . "' on '" . $setter->getName() . "' requires a parameter which defines the type of the elements in the array.");
-                        }
+                    $valueType = $annotations[self::ARRAY_OF_TYPE_ANNOTATION];
 
-                        $propertyValue = $array[$propertyKey];
-                        if (!is_array($propertyValue)) {
-                            $type = gettype($propertyValue);
-                            throw new ObjectMappingException("The type for the property '$propertyName' (identified in array as '$propertyKey') is of invalid type, was '$type', expected '$propertyType'.");
-                        }
+                    if (empty($valueType)) {
+                        throw new \InvalidArgumentException("The annotation '" . self::ARRAY_OF_TYPE_ANNOTATION . "' on '" . $setter->getName() . "' requires a parameter which defines the type of the elements in the array.");
+                    }
 
-                        $checkedArray = array();
-                        foreach ($propertyValue as $key => $value) {
-                            $checkedArray[] = $this->doMapArrayToType($value, $valueType, "", $propertyKey . "[$key]");
-                        }
+                    $propertyValue = $array[$propertyKey];
+                    if (!is_array($propertyValue)) {
+                        $type = gettype($propertyValue);
+                        throw new ObjectMappingException("The type for the property '$propertyName' (identified in array as '$propertyKey') is of invalid type, was '$type', expected '$propertyType'.");
+                    }
+
+                    $checkedArray = array();
+                    foreach ($propertyValue as $key => $value) {
+                        $checkedArray[] = $this->doMapArrayToType($value, $valueType, "", $propertyKey . "[$key]");
                     }
 
                     $this->checkAnnotations($checkedArray, $annotations, $propertyKey, $parentKey);
 
-                    $setterInvoked |= $this->invokeSetter($objectToFill, $setter, $checkedArray);
+                    $setter->invoke($objectToFill, $checkedArray);
                 } catch (ObjectMappingException $e) {
                     if (!$this->failFastValidation && !empty($e->getValidationErrors())) {
                         $validationErrors = array_merge($validationErrors, $e->getValidationErrors());
@@ -183,7 +190,7 @@ class ObjectMapper implements IObjectMapper
 
             } else { // primitive type
                 try {
-                    $propertyValue = array_key_exists($propertyKey, $array) ? $array[$propertyKey] : null;
+                    $propertyValue = $array[$propertyKey];
 
                     if (!empty($propertyType) && (!self::isOfValidType($propertyValue, $propertyType) && $propertyValue !== null)) {
                         $type = gettype($propertyValue);
@@ -196,7 +203,7 @@ class ObjectMapper implements IObjectMapper
 
                     $this->checkAnnotations($propertyValue, $annotations, $propertyKey, $parentKey);
 
-                    $setterInvoked |= $this->invokeSetter($objectToFill, $setter, $propertyValue);
+                    $setter->invoke($objectToFill, $propertyValue);
                 } catch (ObjectMappingException $e) {
                     if (!$this->failFastValidation && !empty($e->getValidationErrors())) {
                         $validationErrors = array_merge($validationErrors, $e->getValidationErrors());
@@ -211,7 +218,7 @@ class ObjectMapper implements IObjectMapper
             throw new ObjectMappingException("Validation of the object failed, see validation errors", $validationErrors);
         }
 
-        return $setterInvoked ? $objectToFill : null;
+        return $objectToFill;
     }
 
     private function coerceType($value, \ReflectionType $type)
@@ -350,15 +357,6 @@ class ObjectMapper implements IObjectMapper
             return true;
         }
 
-        return false;
-    }
-
-    private function invokeSetter($objectToFill, $setter, $parameter): bool
-    {
-        if (!is_null($parameter)) {
-            $setter->invoke($objectToFill, $parameter);
-            return true;
-        }
         return false;
     }
 

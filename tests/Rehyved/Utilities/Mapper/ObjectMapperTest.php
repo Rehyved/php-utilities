@@ -14,6 +14,17 @@ class User
 
     private $age;
 
+    private $weight;
+
+    /**
+     * User constructor.
+     */
+    public function __construct()
+    {
+        $this->weight = 80;
+    }
+
+
     /**
      * @required
      */
@@ -58,6 +69,21 @@ class User
         $this->age = $age;
     }
 
+    /**
+     * @return int
+     */
+    public function getWeight(): int
+    {
+        return $this->weight;
+    }
+
+    /**
+     * @param int $weight
+     */
+    public function setWeight(int $weight)
+    {
+        $this->weight = $weight;
+    }
 
 }
 
@@ -110,9 +136,28 @@ class ObjectMapperTest extends TestCase
 
         $this->assertEquals("Test 1", $output->getName());
         $this->assertEquals("TestUser", $output->getUser()->getName());
+        $this->assertEquals(80, $output->getUser()->getWeight());
         $this->assertCount(count($testFriends), $output->getUser()->getFriends());
         $this->assertEquals($testFriends[0]["name"], $output->getUser()->getFriends()[0]->getName());
         $this->assertEquals($testFriends[1]["name"], $output->getUser()->getFriends()[1]->getName());
+    }
+
+    public function testToArrayMapping()
+    {
+        $testFriends = array(array("name" => "Test Friend 1", "age" => 25, "weight" => 80), array("name" => "Test Friend 2", "age" => "25", "weight" => 80));
+        $testArray = array(
+            "test_name" => "Test 1",
+            "test_user" => array(
+                "name" => "TestUser",
+                "friends" => $testFriends,
+                "age" => "25",
+                "weight" => 80
+            )
+        );
+
+        $mapper = new ObjectMapper();
+
+        $output = $mapper->mapArrayToObject($testArray, TestClass::class, "test");
 
         $this->assertEquals($testArray, $mapper->mapObjectToArray($output, "test"));
     }
