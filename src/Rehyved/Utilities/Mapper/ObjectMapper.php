@@ -174,7 +174,7 @@ class ObjectMapper implements IObjectMapper
 
                     $checkedArray = array();
                     foreach ($propertyValue as $key => $value) {
-                        $checkedArray[] = $this->doMapArrayToType($value, $valueType, "", $propertyKey . "[$key]");
+                        $checkedArray[] = $this->doMapArrayToType((array)$value, $valueType, "", $propertyKey . "[$key]");
                     }
 
                     $this->checkAnnotations($checkedArray, $annotations, $propertyKey, $parentKey);
