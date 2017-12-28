@@ -233,6 +233,8 @@ class ObjectMapper implements IObjectMapper
                 return (string)$value;
             case "array":
                 return (array)$value;
+            case 'bool':
+                return is_bool($value) ? $value : StringHelper::equals($value, "true", true);
             default:
                 return $value;
 
@@ -253,6 +255,9 @@ class ObjectMapper implements IObjectMapper
     public function mapObjectToArray($object, string $prefix = "")
     {
         if (!is_object($object)) {
+            if(is_bool($object)){
+                return $object === true? "true" : "false";
+            }
             return $object;
         }
         if (get_class($object) === \stdClass::class) {
@@ -298,7 +303,34 @@ class ObjectMapper implements IObjectMapper
 
     private static function isOfCoercibleType($value, $type): bool
     {
-        return (($type === "int" || $type === "double" || $type === "float") && is_numeric($value)) || ($type === "bool" && is_bool($value));
+        return (self::isNumericType($type) && is_numeric($value)) || ($type === "bool" && self::isBooleanValue($value));
+    }
+
+    /**
+     * @param $value
+     * @return bool
+     */
+    private static function isBooleanStringValue($value): bool
+    {
+        return is_string($value) && StringHelper::equals($value, "true", true) || StringHelper::equals($value, "false", true);
+    }
+
+    /**
+     * @param $value
+     * @return bool
+     */
+    private static function isBooleanValue($value): bool
+    {
+        return is_bool($value) || self::isBooleanStringValue($value);
+    }
+
+    /**
+     * @param $type
+     * @return bool
+     */
+    private static function isNumericType($type): bool
+    {
+        return $type === "int" || $type === "double" || $type === "float";
     }
 
     private static function isCustomType(\ReflectionType $propertyType)
