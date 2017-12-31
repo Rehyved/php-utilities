@@ -255,9 +255,6 @@ class ObjectMapper implements IObjectMapper
     public function mapObjectToArray($object, string $prefix = "")
     {
         if (!is_object($object)) {
-            if(is_bool($object)){
-                return $object === true? "true" : "false";
-            }
             return $object;
         }
         if (get_class($object) === \stdClass::class) {
