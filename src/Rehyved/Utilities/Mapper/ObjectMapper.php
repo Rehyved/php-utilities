@@ -10,6 +10,7 @@ use Rehyved\Utilities\Mapper\Validator\MinValidator;
 use Rehyved\Utilities\Mapper\Validator\OneOfArrayValidator;
 use Rehyved\Utilities\Mapper\Validator\RegexValidator;
 use Rehyved\Utilities\Mapper\Validator\RequiredValidator;
+use Rehyved\Utilities\Mapper\Validator\TypeValidator;
 use Rehyved\Utilities\StringHelper;
 
 class ObjectMapper implements IObjectMapper
@@ -59,6 +60,7 @@ class ObjectMapper implements IObjectMapper
         $this->lenientTypeCheck = true;
 
         // Add default set of validators
+        $this->addValidator(new TypeValidator());
         $this->addValidator(new MinValidator());
         $this->addValidator(new MaxValidator());
         $this->addValidator(new RequiredValidator());
@@ -117,10 +119,12 @@ class ObjectMapper implements IObjectMapper
         $propertyName = $reflectionProperty->getName();
         $annotationReader = new Reader($reflectionClass->getName(), $reflectionProperty->getName(), "property");
         $annotations = $annotationReader->getParameters();
-
-        $setter = $reflectionClass->getMethod("get" . ucfirst($propertyName));
-        $propertyType = self::getPropertyType($setter, )
-
+        $propertyType = "mixed";
+        if(array_key_exists(TypeValidator::ANNOTATION, $annotations)){
+            $propertyType = $annotations[TypeValidator::ANNOTATION];
+        }
+        $propertySetter = $reflectionClass->getMethod("get" . ucfirst($propertyName));
+        return new ObjectProperty($propertyName, $propertyType, $propertySetter, $annotations);
     }
 
     private function doMapArrayToType(array $array, string $type, string $prefix, string $parentKey)
@@ -133,23 +137,16 @@ class ObjectMapper implements IObjectMapper
             return self::toObjectProperty($property, $reflectionClass);
         }, $properties);
 
-        if (empty($properties))
-            $setters = array_filter($reflectionClass->getMethods(\ReflectionMethod::IS_PUBLIC), "self::isSetter");
+        $setters = array_filter($reflectionClass->getMethods(\ReflectionMethod::IS_PUBLIC), "self::isSetter");
 
         if (empty($setters)) {
             throw new ObjectMappingException("The provided class does not contain any setters.");
         }
 
         $validationErrors = array();
-        foreach ($setters as $setter) {
+        foreach ($objectProperties as $property) {
 
-            $propertyName = self::getPropertyName($setter);
-
-            $propertyType = self::getPropertyType($setter);
-            $propertyKey = empty($prefix) ? $propertyName : $prefix . self::PATH_DELIMITER . $propertyName;
-
-            $annotationReader = new Reader($reflectionClass->getName(), $setter->getName());
-            $annotations = $annotationReader->getParameters();
+            $propertyKey = empty($prefix) ? $property->getName() : $prefix . self::PATH_DELIMITER . $property->getName();
 
 
             if (!array_key_exists($propertyKey, $array)) {
@@ -157,14 +154,14 @@ class ObjectMapper implements IObjectMapper
                 continue;
             }
 
-            if ($propertyType !== null && self::isCustomType($propertyType)) {
+            if (self::isCustomType($property->getType())) {
                 try {
-                    $customType = "" . $propertyType;
+                    $customType = "" . $property->getType();
                     $propertyValue = $this->doMapArrayToType($array[$propertyKey], $customType, "", "");
 
-                    $this->checkAnnotations($propertyValue, $annotations, $propertyKey, $parentKey);
+                    $this->checkAnnotations($propertyValue, $property->getAnnotations(), $propertyKey, $parentKey);
 
-                    $setter->invoke($objectToFill, $propertyValue);
+                    $property->getSetter()->invoke($objectToFill, $propertyValue);
                 } catch (ObjectMappingException $e) {
                     if (!$this->failFastValidation && !empty($e->getValidationErrors())) {
                         $validationErrors = array_merge($validationErrors, $e->getValidationErrors());
@@ -172,21 +169,21 @@ class ObjectMapper implements IObjectMapper
                         throw $e;
                     }
                 }
-            } else if (array_key_exists(self::ARRAY_OF_TYPE_ANNOTATION, $annotations)) {
+            } else if (array_key_exists(self::ARRAY_OF_TYPE_ANNOTATION, $property->getAnnotations())) {
                 // TODO: support simple types
                 try {
                     $checkedArray = null;
 
-                    $valueType = $annotations[self::ARRAY_OF_TYPE_ANNOTATION];
+                    $valueType = $property->getAnnotations()[self::ARRAY_OF_TYPE_ANNOTATION];
 
                     if (empty($valueType)) {
-                        throw new \InvalidArgumentException("The annotation '" . self::ARRAY_OF_TYPE_ANNOTATION . "' on '" . $setter->getName() . "' requires a parameter which defines the type of the elements in the array.");
+                        throw new \InvalidArgumentException("The annotation '" . self::ARRAY_OF_TYPE_ANNOTATION . "' on '" . $property->getName() . "' requires a parameter which defines the type of the elements in the array.");
                     }
 
                     $propertyValue = $array[$propertyKey];
                     if (!is_array($propertyValue)) {
                         $type = gettype($propertyValue);
-                        throw new ObjectMappingException("The type for the property '$propertyName' (identified in array as '$propertyKey') is of invalid type, was '$type', expected '$propertyType'.");
+                        throw new ObjectMappingException("The type for the property '".$property->getName()."' (identified in array as '$propertyKey') is of invalid type, was '$type', expected '".$property->getType()."'.");
                     }
 
                     $checkedArray = array();
@@ -194,9 +191,9 @@ class ObjectMapper implements IObjectMapper
                         $checkedArray[] = $this->doMapArrayToType((array)$value, $valueType, "", $propertyKey . "[$key]");
                     }
 
-                    $this->checkAnnotations($checkedArray, $annotations, $propertyKey, $parentKey);
+                    $this->checkAnnotations($checkedArray, $property->getAnnotations(), $propertyKey, $parentKey);
 
-                    $setter->invoke($objectToFill, $checkedArray);
+                    $property->getSetter()->invoke($objectToFill, $checkedArray);
                 } catch (ObjectMappingException $e) {
                     if (!$this->failFastValidation && !empty($e->getValidationErrors())) {
                         $validationErrors = array_merge($validationErrors, $e->getValidationErrors());

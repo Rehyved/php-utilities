@@ -9,17 +9,22 @@
 namespace Rehyved\Utilities\Mapper\Validator;
 
 
+use Rehyved\Utilities\Mapper\Validator\Error\TypeValidationError;
+use Rehyved\Utilities\StringHelper;
+
 class TypeValidator implements IObjectMapperValidator
 {
 
+    const ANNOTATION = "type";
+
     public function getAnnotation(): string
     {
-        return "type";
+        return self::ANNOTATION;
     }
 
     public function validate($value, $annotationParameter, $valueName = null)
     {
-        return self::isOfValidType($value, $annotationParameter);
+        return !self::isOfValidType($value, $annotationParameter) ? new TypeValidationError($valueName, $value): null;
     }
 
     private static function isOfValidType($value, $type)
@@ -29,5 +34,25 @@ class TypeValidator implements IObjectMapperValidator
         $type = $type === "float" ? "double" : "" . $type;
 
         return gettype($value) === $type || self::isOfCoercibleType($value, $type);
+    }
+
+    private static function isOfCoercibleType($value, $type): bool
+    {
+        return (self::isNumericType($type) && is_numeric($value)) || ($type === "bool" && self::isBooleanValue($value));
+    }
+
+    private static function isBooleanStringValue($value): bool
+    {
+        return is_string($value) && StringHelper::equals($value, "true", true) || StringHelper::equals($value, "false", true);
+    }
+
+    private static function isBooleanValue($value): bool
+    {
+        return is_bool($value) || self::isBooleanStringValue($value);
+    }
+
+    private static function isNumericType($type): bool
+    {
+        return $type === "int" || $type === "double" || $type === "float";
     }
 }

@@ -11,41 +11,41 @@ namespace Rehyved\Utilities\Mapper;
 
 class ObjectProperty
 {
-    private $propertyName;
-    private $propertyType;
-    private $propertySetter;
+    private $name;
+    private $type;
+    private $setter;
     private $annotations;
 
-    public function __construct(string $propertyName, string $propertyType, $propertySetter, array $annotations)
+    public function __construct(string $name, string $type, $setter, array $annotations)
     {
-        $this->propertyName = $propertyName;
-        $this->propertyType = $propertyType;
-        $this->propertySetter = $propertySetter;
+        $this->name = $name;
+        $this->type = $type;
+        $this->setter = $setter;
         $this->annotations = $annotations;
     }
 
     /**
      * @return mixed
      */
-    public function getPropertyName()
+    public function getName()
     {
-        return $this->propertyName;
+        return $this->name;
     }
 
     /**
      * @return mixed
      */
-    public function getPropertyType()
+    public function getType()
     {
-        return $this->propertyType;
+        return $this->type;
     }
 
     /**
      * @return mixed
      */
-    public function getPropertySetter()
+    public function getSetter()
     {
-        return $this->propertySetter;
+        return $this->setter;
     }
 
     /**
