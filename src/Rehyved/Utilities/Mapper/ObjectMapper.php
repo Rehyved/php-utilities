@@ -112,12 +112,29 @@ class ObjectMapper implements IObjectMapper
         return $this->doMapArrayToType($array, $type, $prefix, "");
     }
 
+    public function toObjectProperty(\ReflectionProperty $reflectionProperty, \ReflectionClass $reflectionClass) : ObjectProperty
+    {
+        $propertyName = $reflectionProperty->getName();
+        $annotationReader = new Reader($reflectionClass->getName(), $reflectionProperty->getName(), "property");
+        $annotations = $annotationReader->getParameters();
+
+        $setter = $reflectionClass->getMethod("get" . ucfirst($propertyName));
+        $propertyType = self::getPropertyType($setter, )
+
+    }
+
     private function doMapArrayToType(array $array, string $type, string $prefix, string $parentKey)
     {
         $objectToFill = new $type();
         $reflectionClass = new \ReflectionClass($objectToFill);
 
-        $setters = array_filter($reflectionClass->getMethods(\ReflectionMethod::IS_PUBLIC), "self::isSetter");
+        $properties = $reflectionClass->getProperties(\ReflectionProperty::IS_PRIVATE | \ReflectionProperty::IS_PROTECTED | \ReflectionProperty::IS_PROTECTED);
+        $objectProperties = array_map(function ($property) use ($reflectionClass) {
+            return self::toObjectProperty($property, $reflectionClass);
+        }, $properties);
+
+        if (empty($properties))
+            $setters = array_filter($reflectionClass->getMethods(\ReflectionMethod::IS_PUBLIC), "self::isSetter");
 
         if (empty($setters)) {
             throw new ObjectMappingException("The provided class does not contain any setters.");
