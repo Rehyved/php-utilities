@@ -13,6 +13,10 @@ class MinValidator implements IObjectMapperValidator
 
     public function validate($value, $minValue, $valueName = null)
     {
+        if($value === null){
+            return null;
+        }
+
         if ((is_array($value) && count($value) < $minValue)
             || (is_string($value) && \mb_strlen($value) < $minValue)
             || (is_numeric($value) && $value < $minValue)

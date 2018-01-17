@@ -13,6 +13,10 @@ class MaxValidator implements IObjectMapperValidator
 
     public function validate($value, $maxValue, $valueName = null)
     {
+        if($value === null){
+            return null;
+        }
+
         if ((is_array($value) && count($value) > $maxValue)
             || (is_string($value) && \mb_strlen($value) > $maxValue)
             || (\is_numeric($value) && $value > $maxValue)

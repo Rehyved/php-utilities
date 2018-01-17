@@ -144,7 +144,7 @@ class ObjectMapper implements IObjectMapper
             return $valueToMap;
         }
 
-        $array = $valueToMap;
+        $array = (array)$valueToMap;
 
         $objectToFill = new $type();
         $reflectionClass = new \ReflectionClass($objectToFill);
