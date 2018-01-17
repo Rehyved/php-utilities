@@ -16,18 +16,18 @@ class User
 
     /**
      * @min 2
-     * @arrayOf Rehyved\Utilities\Mapper\User
+     * @var User[]
      */
     private $friends;
 
     /**
      * @required
-     * @type int
+     * @var int
      */
     private $age;
 
     /**
-     * @type int
+     * @var int
      */
     private $weight;
 
@@ -56,7 +56,7 @@ class User
      * @min 2
      * @arrayOf Rehyved\Utilities\Mapper\User
      */
-    public function setFriends(array $friends)
+    public function setFriends($friends)
     {
         $this->friends = $friends;
     }
@@ -86,7 +86,7 @@ class User
     /**
      * @return int
      */
-    public function getWeight(): int
+    public function getWeight()
     {
         return $this->weight;
     }
@@ -94,7 +94,7 @@ class User
     /**
      * @param int $weight
      */
-    public function setWeight(int $weight)
+    public function setWeight($weight)
     {
         $this->weight = $weight;
     }
@@ -104,11 +104,11 @@ class User
 class TestClass
 {
     /**
-     * @type string
+     * @var string
      */
     private $name;
     /**
-     * @type User
+     * @var User
      */
     private $user;
 

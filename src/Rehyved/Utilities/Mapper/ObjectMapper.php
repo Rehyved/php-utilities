@@ -12,6 +12,7 @@ use Rehyved\Utilities\Mapper\Validator\RegexValidator;
 use Rehyved\Utilities\Mapper\Validator\RequiredValidator;
 use Rehyved\Utilities\Mapper\Validator\TypeValidator;
 use Rehyved\Utilities\StringHelper;
+use Rehyved\Utilities\TypeHelper;
 
 class ObjectMapper implements IObjectMapper
 {
@@ -45,7 +46,7 @@ class ObjectMapper implements IObjectMapper
         "throws",
         "todo",
         "uses",
-        "var",
+        // "var", used for type annotation validation
         "version"
     );
 
@@ -114,27 +115,32 @@ class ObjectMapper implements IObjectMapper
         return $this->doMapArrayToType($array, $type, $prefix, "");
     }
 
-    public function toObjectProperty(\ReflectionProperty $reflectionProperty, \ReflectionClass $reflectionClass) : ObjectProperty
+    /**
+     * @param $valueToMap
+     * @param string $type
+     * @param string $prefix
+     * @param string $parentKey
+     * @return null
+     * @throws ObjectMappingException
+     */
+    private function doMapArrayToType($valueToMap, string $type, string $prefix, string $parentKey)
     {
-        $propertyName = $reflectionProperty->getName();
-        $annotationReader = new Reader($reflectionClass->getName(), $reflectionProperty->getName(), "property");
-        $annotations = $annotationReader->getParameters();
-        $propertyType = "mixed";
-        if(array_key_exists(TypeValidator::ANNOTATION, $annotations)){
-            $propertyType = $annotations[TypeValidator::ANNOTATION];
+        if ($valueToMap === null) {
+            return null;
         }
 
-        if(self::isCustomType($propertyType) && !class_exists($propertyType)){
-            $propertyType = $reflectionClass->getNamespaceName() . "\\". $propertyType;
-            $annotations[TypeValidator::ANNOTATION] = $propertyType;
+        if (!is_array($valueToMap) && TypeHelper::isBuiltInType($type)) {
+            if (TypeHelper::isOfCoercibleType($valueToMap, $type)) {
+                return TypeHelper::coerceType($valueToMap, $type);
+            } else {
+                throw new ObjectMappingException("The type for the value '$valueToMap' is of invalid type, was '" . gettype($valueToMap) . "', expected '$type'.");
+            }
+        } else if (!is_array($valueToMap) && !TypeHelper::isBuiltInType($type) && get_class($valueToMap) === $type) {
+            return $valueToMap;
         }
 
-        $propertySetter = $reflectionClass->getMethod("set" . ucfirst($propertyName));
-        return new ObjectProperty($propertyName, $propertyType, $propertySetter, $annotations);
-    }
+        $array = $valueToMap;
 
-    private function doMapArrayToType(array $array, string $type, string $prefix, string $parentKey)
-    {
         $objectToFill = new $type();
         $reflectionClass = new \ReflectionClass($objectToFill);
 
@@ -151,77 +157,51 @@ class ObjectMapper implements IObjectMapper
 
             $propertyKey = empty($prefix) ? $propertyName : $prefix . self::PATH_DELIMITER . $propertyName;
 
-            if (!array_key_exists($propertyKey, $array)) {
-                // TODO: call check annotations for getter to validate requirements
-                continue;
+            try {
+                $propertyValue = null;
+
+                if(array_key_exists($propertyKey, $array)) {
+                    $arrayValue = $array[$propertyKey];
+
+                    if (array_key_exists(TypeValidator::ANNOTATION, $annotations) && TypeHelper::isArrayType($annotations[TypeValidator::ANNOTATION])) {
+                        $valueType = $annotations[TypeValidator::ANNOTATION];
+
+                        if (empty($valueType)) {
+                            throw new \InvalidArgumentException("The annotation '" . self::ARRAY_OF_TYPE_ANNOTATION . "' on '$propertyName' requires a parameter which defines the type of the elements in the array.");
+                        }
+
+                        if ($arrayValue !== null) {
+                            if (!is_array($arrayValue)) {
+                                $type = gettype($arrayValue);
+                                throw new ObjectMappingException("The type for the property '$propertyName' (identified in array as '$propertyKey') is of invalid type, was '$type', expected '" . $propertyType . "'.");
+                            }
+
+                            $valueType = substr($valueType, 0, strlen($valueType) - 2);
+                            $valueType = TypeHelper::isBuiltInType($valueType) || class_exists($valueType) ? $valueType : $reflectionClass->getNamespaceName() . "\\" . $valueType;
+
+                            $propertyValue = array();
+                            foreach ($arrayValue as $key => $value) {
+                                $propertyValue[] = $this->doMapArrayToType($value, $valueType, "", $propertyKey . "[$key]");
+                            }
+                        }
+                    } else {
+                        $propertyValue = $this->doMapArrayToType($arrayValue, $propertyType, "", "");
+                    }
+                }
+
+                $this->checkAnnotations($propertyValue, $annotations, $propertyKey, $parentKey);
+
+                if (array_key_exists($propertyKey, $array)) {
+                    $setter->invoke($objectToFill, $propertyValue);
+                }
+            } catch (ObjectMappingException $e) {
+                if (!$this->failFastValidation && !empty($e->getValidationErrors())) {
+                    $validationErrors = array_merge($validationErrors, $e->getValidationErrors());
+                } else {
+                    throw $e;
+                }
             }
 
-            if (self::isCustomType($propertyType)) {
-                try {
-                    $propertyValue = $this->doMapArrayToType($array[$propertyKey], $propertyType, "", "");
-
-                    $this->checkAnnotations($propertyValue, $annotations, $propertyKey, $parentKey);
-
-                    $setter->invoke($objectToFill, $propertyValue);
-                } catch (ObjectMappingException $e) {
-                    if (!$this->failFastValidation && !empty($e->getValidationErrors())) {
-                        $validationErrors = array_merge($validationErrors, $e->getValidationErrors());
-                    } else {
-                        throw $e;
-                    }
-                }
-            } else if (array_key_exists(self::ARRAY_OF_TYPE_ANNOTATION, $property->getAnnotations())) {
-                // TODO: support simple types
-                try {
-                    $checkedArray = null;
-
-                    $valueType = $annotations[self::ARRAY_OF_TYPE_ANNOTATION];
-
-                    if (empty($valueType)) {
-                        throw new \InvalidArgumentException("The annotation '" . self::ARRAY_OF_TYPE_ANNOTATION . "' on '$propertyName' requires a parameter which defines the type of the elements in the array.");
-                    }
-
-                    $propertyValue = $array[$propertyKey];
-                    if (!is_array($propertyValue)) {
-                        $type = gettype($propertyValue);
-                        throw new ObjectMappingException("The type for the property '$propertyName' (identified in array as '$propertyKey') is of invalid type, was '$type', expected '".$property->getType()."'.");
-                    }
-
-                    $checkedArray = array();
-                    foreach ($propertyValue as $key => $value) {
-                        $checkedArray[] = $this->doMapArrayToType((array)$value, $valueType, "", $propertyKey . "[$key]");
-                    }
-
-                    $this->checkAnnotations($checkedArray, $annotations, $propertyKey, $parentKey);
-
-                    $setter->invoke($objectToFill, $checkedArray);
-                } catch (ObjectMappingException $e) {
-                    if (!$this->failFastValidation && !empty($e->getValidationErrors())) {
-                        $validationErrors = array_merge($validationErrors, $e->getValidationErrors());
-                    } else {
-                        throw $e;
-                    }
-                }
-
-            } else { // primitive type
-                try {
-                    $propertyValue = $array[$propertyKey];
-
-                    $this->checkAnnotations($propertyValue, $annotations, $propertyKey, $parentKey);
-
-                    if (!empty($propertyType)) {
-                        $propertyValue = $this->coerceType($propertyValue, $propertyType);
-                    }
-
-                    $setter->invoke($objectToFill, $propertyValue);
-                } catch (ObjectMappingException $e) {
-                    if (!$this->failFastValidation && !empty($e->getValidationErrors())) {
-                        $validationErrors = array_merge($validationErrors, $e->getValidationErrors());
-                    } else {
-                        throw $e;
-                    }
-                }
-            }
         }
 
         if (!empty($validationErrors)) {
@@ -231,24 +211,44 @@ class ObjectMapper implements IObjectMapper
         return $objectToFill;
     }
 
-    private function coerceType($value, string $type)
+    /**
+     * @param $reflectionClass
+     * @param $properties
+     * @return ObjectProperty[]
+     */
+    private function toObjectProperties($reflectionClass, $properties): array
     {
-        switch ($type) {
-            case "double":
-            case "float":
-                return (float)$value;
-            case "int":
-                return (int)$value;
-            case "string":
-                return (string)$value;
-            case "array":
-                return (array)$value;
-            case 'bool':
-                return is_bool($value) ? $value : StringHelper::equals($value, "true", true);
-            default:
-                return $value;
+        return array_map(function ($property) use ($reflectionClass) {
+            return self::toObjectProperty($property, $reflectionClass);
+        }, $properties);
+    }
 
+    public function toObjectProperty(\ReflectionProperty $reflectionProperty, \ReflectionClass $reflectionClass): ObjectProperty
+    {
+        $propertyName = $reflectionProperty->getName();
+        $annotationReader = new Reader($reflectionClass->getName(), $reflectionProperty->getName(), "property");
+        $annotations = $annotationReader->getParameters();
+        $propertyType = "mixed";
+
+        if (array_key_exists(TypeValidator::ANNOTATION, $annotations)) {
+            $propertyType = $annotations[TypeValidator::ANNOTATION];
         }
+
+        if (StringHelper::endsWith($propertyType, "[]")) {
+            $valueType = substr($propertyType, 0, strlen($propertyType) - 2);
+            $valueType = class_exists($valueType) ? $valueType : $reflectionClass->getNamespaceName() . "\\" . $valueType;
+            $annotations[TypeValidator::ANNOTATION] = $valueType . "[]";
+
+            $propertyType = "array";
+        }
+
+        if (!TypeHelper::isBuiltInType($propertyType) && !class_exists($propertyType)) {
+            $propertyType = $reflectionClass->getNamespaceName() . "\\" . $propertyType;
+            $annotations[TypeValidator::ANNOTATION] = $propertyType;
+        }
+
+        $propertySetter = $reflectionClass->getMethod("set" . ucfirst($propertyName));
+        return new ObjectProperty($propertyName, $propertyType, $propertySetter, $annotations);
     }
 
     /**
@@ -273,7 +273,7 @@ class ObjectMapper implements IObjectMapper
 
         $objectClass = new \ReflectionClass($object);
 
-        $getters = array_filter($objectClass->getMethods(\ReflectionMethod::IS_PUBLIC), "self::isGetter");
+        $getters = $this->getGetters($objectClass);
 
         $array = array();
         foreach ($getters as $getter) {
@@ -299,82 +299,10 @@ class ObjectMapper implements IObjectMapper
         return $array;
     }
 
-    private static function isOfValidType($value, $type)
-    {
-        // The gettype function will return double instead of float, however the type from reflection might come back as float.
-        // See: http://php.net/manual/en/function.gettype.php
-        $type = $type === "float" ? "double" : "" . $type;
-
-        return gettype($value) === $type || self::isOfCoercibleType($value, $type);
-    }
-
-    private static function isOfCoercibleType($value, $type): bool
-    {
-        return $type === "mixed" || (self::isNumericType($type) && is_numeric($value)) || ($type === "bool" && self::isBooleanValue($value));
-    }
-
-    /**
-     * @param $value
-     * @return bool
-     */
-    private static function isBooleanStringValue($value): bool
-    {
-        return is_string($value) && StringHelper::equals($value, "true", true) || StringHelper::equals($value, "false", true);
-    }
-
-    /**
-     * @param $value
-     * @return bool
-     */
-    private static function isBooleanValue($value): bool
-    {
-        return is_bool($value) || self::isBooleanStringValue($value);
-    }
-
-    /**
-     * @param $type
-     * @return bool
-     */
-    private static function isNumericType($type): bool
-    {
-        return $type === "int" || $type === "double" || $type === "float";
-    }
-
-    private static function isCustomType($propertyType)
-    {
-        return !empty($propertyType) && !self::isBuildInType($propertyType);
-    }
-
-    private static function isBuildInType($propertyType)
-    {
-        switch($propertyType){
-            case "mixed":
-            case "double":
-            case "float":
-            case "int":
-            case "string":
-            case "array":
-            case 'bool':
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    private static function getPropertyType(\ReflectionMethod $setter)
-    {
-        return $setter->getParameters()[0]->getType();
-    }
-
     private static function getPropertyName(\ReflectionMethod $setterOrGetter)
     {
         $methodName = $setterOrGetter->getName();
         return lcfirst(substr($methodName, 3));
-    }
-
-    private static function isSetter(\ReflectionMethod $method)
-    {
-        return StringHelper::startsWith($method->getName(), "set") && $method->getNumberOfParameters() === 1;
     }
 
     private static function isGetter(\ReflectionMethod $method)
@@ -423,14 +351,11 @@ class ObjectMapper implements IObjectMapper
     }
 
     /**
-     * @param $reflectionClass
-     * @param $properties
-     * @return ObjectProperty[]
+     * @param $objectClass
+     * @return \ReflectionMethod[]
      */
-    private function toObjectProperties($reflectionClass, $properties): array
+    private function getGetters(\ReflectionClass $objectClass)
     {
-        return array_map(function ($property) use ($reflectionClass) {
-            return self::toObjectProperty($property, $reflectionClass);
-        }, $properties);
+        return array_filter($objectClass->getMethods(\ReflectionMethod::IS_PUBLIC), "self::isGetter");
     }
 }
