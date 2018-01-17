@@ -99,6 +99,15 @@ class ObjectMapper implements IObjectMapper
         $this->validators[$validator->getAnnotation()] = $validator;
     }
 
+    private static function isExcludedAnnotation($name)
+    {
+        if ($name === self::ARRAY_OF_TYPE_ANNOTATION || in_array($name, self::$PHP_DOC_ANNOTATIONS)) {
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      * Maps the provided array to an instance of the provided type.
      * During mapping the validators are used to validate the parameters and values of the resulting object.
@@ -109,6 +118,7 @@ class ObjectMapper implements IObjectMapper
      * @param string $type The type of the object of which an instance should be created and mapped to.
      * @param string $prefix The prefix used in the array for the keys of the object.
      * @return mixed An instance of the provided type.
+     * @throws ObjectMappingException
      */
     public function mapArrayToObject(array $array, string $type, string $prefix = "")
     {
@@ -116,11 +126,6 @@ class ObjectMapper implements IObjectMapper
     }
 
     /**
-     * @param $valueToMap
-     * @param string $type
-     * @param string $prefix
-     * @param string $parentKey
-     * @return null
      * @throws ObjectMappingException
      */
     private function doMapArrayToType($valueToMap, string $type, string $prefix, string $parentKey)
@@ -144,23 +149,24 @@ class ObjectMapper implements IObjectMapper
         $objectToFill = new $type();
         $reflectionClass = new \ReflectionClass($objectToFill);
 
-        $properties = $reflectionClass->getProperties(\ReflectionProperty::IS_PRIVATE | \ReflectionProperty::IS_PROTECTED | \ReflectionProperty::IS_PROTECTED);
-        $objectProperties = $this->toObjectProperties($reflectionClass, $properties);
+        $objectProperties = $this->getObjectProperties($reflectionClass);
 
         $validationErrors = array();
         foreach ($objectProperties as $property) {
+            if ($property->getSetter() == null && !$property->isPublic()) {
+                continue;
+            }
 
             $propertyName = $property->getName();
             $propertyType = $property->getType();
             $annotations = $property->getAnnotations();
-            $setter = $property->getSetter();
 
             $propertyKey = empty($prefix) ? $propertyName : $prefix . self::PATH_DELIMITER . $propertyName;
 
             try {
                 $propertyValue = null;
 
-                if(array_key_exists($propertyKey, $array)) {
+                if (array_key_exists($propertyKey, $array)) {
                     $arrayValue = $array[$propertyKey];
 
                     if (array_key_exists(TypeValidator::ANNOTATION, $annotations) && TypeHelper::isArrayType($annotations[TypeValidator::ANNOTATION])) {
@@ -192,7 +198,8 @@ class ObjectMapper implements IObjectMapper
                 $this->checkAnnotations($propertyValue, $annotations, $propertyKey, $parentKey);
 
                 if (array_key_exists($propertyKey, $array)) {
-                    $setter->invoke($objectToFill, $propertyValue);
+                    $this->setValue($objectToFill, $property, $propertyValue);
+                    //$setter->invoke($objectToFill, $propertyValue);
                 }
             } catch (ObjectMappingException $e) {
                 if (!$this->failFastValidation && !empty($e->getValidationErrors())) {
@@ -211,13 +218,10 @@ class ObjectMapper implements IObjectMapper
         return $objectToFill;
     }
 
-    /**
-     * @param $reflectionClass
-     * @param $properties
-     * @return ObjectProperty[]
-     */
-    private function toObjectProperties($reflectionClass, $properties): array
+    private function getObjectProperties(\ReflectionClass $reflectionClass): array
     {
+        $properties = $reflectionClass->getProperties(\ReflectionProperty::IS_PRIVATE | \ReflectionProperty::IS_PROTECTED | \ReflectionProperty::IS_PUBLIC);
+
         return array_map(function ($property) use ($reflectionClass) {
             return self::toObjectProperty($property, $reflectionClass);
         }, $properties);
@@ -236,19 +240,31 @@ class ObjectMapper implements IObjectMapper
 
         if (StringHelper::endsWith($propertyType, "[]")) {
             $valueType = substr($propertyType, 0, strlen($propertyType) - 2);
-            $valueType = class_exists($valueType) ? $valueType : $reflectionClass->getNamespaceName() . "\\" . $valueType;
+            $valueType = TypeHelper::isBuiltInType($valueType) || class_exists($valueType) ? $valueType : $reflectionClass->getNamespaceName() . "\\" . $valueType;
             $annotations[TypeValidator::ANNOTATION] = $valueType . "[]";
 
             $propertyType = "array";
-        }
-
-        if (!TypeHelper::isBuiltInType($propertyType) && !class_exists($propertyType)) {
+        } else if (!TypeHelper::isBuiltInType($propertyType) && !class_exists($propertyType)) {
             $propertyType = $reflectionClass->getNamespaceName() . "\\" . $propertyType;
             $annotations[TypeValidator::ANNOTATION] = $propertyType;
         }
 
-        $propertySetter = $reflectionClass->getMethod("set" . ucfirst($propertyName));
-        return new ObjectProperty($propertyName, $propertyType, $propertySetter, $annotations);
+        $propertyModifiers = \Reflection::getModifierNames($reflectionProperty->getModifiers());
+
+        $propertySetter = null;
+        try {
+            $propertySetter = $reflectionClass->getMethod("set" . ucfirst($propertyName));
+        } catch (\ReflectionException $e) {
+            // This is permitted
+        }
+
+        $propertyGetter = null;
+        try {
+            $propertyGetter = $reflectionClass->getMethod("get" . ucfirst($propertyName));
+        } catch (\ReflectionException $e) {
+            // This is permitted
+        }
+        return new ObjectProperty($propertyName, $propertyType, $propertyModifiers, $propertySetter, $propertyGetter, $annotations);
     }
 
     /**
@@ -273,19 +289,28 @@ class ObjectMapper implements IObjectMapper
 
         $objectClass = new \ReflectionClass($object);
 
-        $getters = $this->getGetters($objectClass);
+        $objectProperties = $this->getObjectProperties($objectClass);
 
         $array = array();
-        foreach ($getters as $getter) {
-            $value = $getter->invoke($object);
+        foreach ($objectProperties as $property) {
+            if ($property->getGetter() == null && !$property->isPublic()) {
+                continue;
+            }
+
+            $value = $this->getValue($object, $property);
             if ($value === null) {
                 continue;
             }
 
-            $propertyName = self::getPropertyName($getter);
+            $propertyName = $property->getName();
+            $annotations = $property->getAnnotations();
+
             $propertyKey = empty($prefix) ? $propertyName : $prefix . self::PATH_DELIMITER . $propertyName;
 
-            if (is_array($value) && self::hasArrayOfTypeAnnotation($objectClass, $getter)) {
+            if (is_array($value)
+                && array_key_exists(TypeValidator::ANNOTATION, $annotations)
+                && TypeHelper::isArrayType($annotations[TypeValidator::ANNOTATION])
+            ) {
                 $items = array();
                 foreach ($value as $index => $item) {
                     $items[] = $this->mapObjectToArray($item);
@@ -299,17 +324,9 @@ class ObjectMapper implements IObjectMapper
         return $array;
     }
 
-    private static function getPropertyName(\ReflectionMethod $setterOrGetter)
-    {
-        $methodName = $setterOrGetter->getName();
-        return lcfirst(substr($methodName, 3));
-    }
-
-    private static function isGetter(\ReflectionMethod $method)
-    {
-        return StringHelper::startsWith($method->getName(), "get") && $method->getNumberOfParameters() === 0;
-    }
-
+    /**
+     * @throws ObjectMappingException
+     */
     private function checkAnnotations($propertyValue, $annotations, $propertyKey, $parentKey)
     {
         $validationErrors = array();
@@ -334,28 +351,23 @@ class ObjectMapper implements IObjectMapper
         }
     }
 
-    private static function isExcludedAnnotation($name)
+    private function setValue($object, ObjectProperty $property, $propertyValue)
     {
-        if ($name === self::ARRAY_OF_TYPE_ANNOTATION || in_array($name, self::$PHP_DOC_ANNOTATIONS)) {
-            return true;
+        if ($property->getSetter() !== null) {
+            $property->getSetter()->invoke($object, $propertyValue);
+        } else {
+            $propertyName = $property->getName();
+            $object->$propertyName = $propertyValue;
         }
-
-        return false;
     }
 
-    private static function hasArrayOfTypeAnnotation(\ReflectionClass $objectClass, \ReflectionMethod $getter): bool
+    private function getValue($object, ObjectProperty $property)
     {
-        $setterName = str_replace("get", "set", $getter->getName());
-        $annotationReader = new Reader($objectClass->getName(), $setterName);
-        return $annotationReader->getParameter(self::ARRAY_OF_TYPE_ANNOTATION) !== null;
-    }
-
-    /**
-     * @param $objectClass
-     * @return \ReflectionMethod[]
-     */
-    private function getGetters(\ReflectionClass $objectClass)
-    {
-        return array_filter($objectClass->getMethods(\ReflectionMethod::IS_PUBLIC), "self::isGetter");
+        if ($property->getGetter() !== null) {
+            return $property->getGetter()->invoke($object);
+        } else {
+            $propertyName = $property->getName();
+            return $object->$propertyName;
+        }
     }
 }

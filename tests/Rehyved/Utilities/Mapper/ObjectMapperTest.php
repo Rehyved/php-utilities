@@ -31,6 +31,8 @@ class User
      */
     private $weight;
 
+    protected $privacy;
+
     /**
      * User constructor.
      */
@@ -112,6 +114,11 @@ class TestClass
      */
     private $user;
 
+    /**
+     * @var int[]
+     */
+    public $numbers;
+
     public function setName(string $name)
     {
         $this->name = $name;
@@ -131,6 +138,8 @@ class TestClass
     {
         return $this->user;
     }
+
+
 }
 
 class ObjectMapperTest extends TestCase
@@ -147,8 +156,10 @@ class ObjectMapperTest extends TestCase
                 "test_user" => array(
                     "name" => "TestUser",
                     "friends" => $testFriends,
-                    "age" => "25"
-                )
+                    "age" => "25",
+                    "privacy" => "should not break but skip this one"
+                ),
+                "test_numbers" => array(1,2,3,4,5)
             );
 
             $mapper = new ObjectMapper();
@@ -161,6 +172,7 @@ class ObjectMapperTest extends TestCase
             $this->assertCount(count($testFriends), $output->getUser()->getFriends());
             $this->assertEquals($testFriends[0]["name"], $output->getUser()->getFriends()[0]->getName());
             $this->assertEquals($testFriends[1]["name"], $output->getUser()->getFriends()[1]->getName());
+            $this->assertEquals($testArray["test_numbers"], $output->numbers);
         } catch (ObjectMappingException $e) {
             var_dump($e->getValidationErrors());
             throw $e;

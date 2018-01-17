@@ -13,14 +13,18 @@ class ObjectProperty
 {
     private $name;
     private $type;
+    private $modifiers;
     private $setter;
+    private $getter;
     private $annotations;
 
-    public function __construct(string $name, string $type, $setter, array $annotations)
+    public function __construct(string $name, string $type, $modifiers, $setter, $getter, array $annotations)
     {
         $this->name = $name;
         $this->type = $type;
+        $this->modifiers = $modifiers;
         $this->setter = $setter;
+        $this->getter = $getter;
         $this->annotations = $annotations;
     }
 
@@ -43,9 +47,25 @@ class ObjectProperty
     /**
      * @return mixed
      */
+    public function getModifiers()
+    {
+        return $this->modifiers;
+    }
+
+    /**
+     * @return mixed
+     */
     public function getSetter()
     {
         return $this->setter;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getGetter()
+    {
+        return $this->getter;
     }
 
     /**
@@ -56,5 +76,15 @@ class ObjectProperty
         return $this->annotations;
     }
 
+    public function isPublic() :bool {
+        return in_array("public", $this->modifiers);
+    }
 
+    public function isProtected() :bool {
+        return in_array("protected", $this->modifiers);
+    }
+
+    public function isPrivate() :bool {
+        return in_array("private", $this->modifiers);
+    }
 }
