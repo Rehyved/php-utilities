@@ -9,11 +9,26 @@ use Rehyved\Utilities\Mapper\Validator\RequiredValidator;
 
 class User
 {
+    /**
+     * @required
+     */
     private $name;
+
+    /**
+     * @min 2
+     * @arrayOf Rehyved\Utilities\Mapper\User
+     */
     private $friends;
 
+    /**
+     * @required
+     * @type int
+     */
     private $age;
 
+    /**
+     * @type int
+     */
     private $weight;
 
     /**
@@ -23,7 +38,6 @@ class User
     {
         $this->weight = 80;
     }
-
 
     /**
      * @required
@@ -89,7 +103,13 @@ class User
 
 class TestClass
 {
+    /**
+     * @type string
+     */
     private $name;
+    /**
+     * @type User
+     */
     private $user;
 
     public function setName(string $name)
@@ -120,46 +140,56 @@ class ObjectMapperTest extends TestCase
      */
     public function testObjectMapper()
     {
-        $testFriends = array(array("name" => "Test Friend 1", "age" => 25), array("name" => "Test Friend 2", "age" => "25"));
-        $testArray = array(
-            "test_name" => "Test 1",
-            "test_user" => array(
-                "name" => "TestUser",
-                "friends" => $testFriends,
-                "age" => "25"
-            )
-        );
+        try {
+            $testFriends = array(array("name" => "Test Friend 1", "age" => 25), array("name" => "Test Friend 2", "age" => "25"));
+            $testArray = array(
+                "test_name" => "Test 1",
+                "test_user" => array(
+                    "name" => "TestUser",
+                    "friends" => $testFriends,
+                    "age" => "25"
+                )
+            );
 
-        $mapper = new ObjectMapper();
+            $mapper = new ObjectMapper();
 
-        $output = $mapper->mapArrayToObject($testArray, TestClass::class, "test");
+            $output = $mapper->mapArrayToObject($testArray, TestClass::class, "test");
 
-        $this->assertEquals("Test 1", $output->getName());
-        $this->assertEquals("TestUser", $output->getUser()->getName());
-        $this->assertEquals(80, $output->getUser()->getWeight());
-        $this->assertCount(count($testFriends), $output->getUser()->getFriends());
-        $this->assertEquals($testFriends[0]["name"], $output->getUser()->getFriends()[0]->getName());
-        $this->assertEquals($testFriends[1]["name"], $output->getUser()->getFriends()[1]->getName());
+            $this->assertEquals("Test 1", $output->getName());
+            $this->assertEquals("TestUser", $output->getUser()->getName());
+            $this->assertEquals(80, $output->getUser()->getWeight());
+            $this->assertCount(count($testFriends), $output->getUser()->getFriends());
+            $this->assertEquals($testFriends[0]["name"], $output->getUser()->getFriends()[0]->getName());
+            $this->assertEquals($testFriends[1]["name"], $output->getUser()->getFriends()[1]->getName());
+        } catch (ObjectMappingException $e) {
+            var_dump($e->getValidationErrors());
+            throw $e;
+        }
     }
 
     public function testToArrayMapping()
     {
-        $testFriends = array(array("name" => "Test Friend 1", "age" => 25, "weight" => 80), array("name" => "Test Friend 2", "age" => "25", "weight" => 80));
-        $testArray = array(
-            "test_name" => "Test 1",
-            "test_user" => array(
-                "name" => "TestUser",
-                "friends" => $testFriends,
-                "age" => "25",
-                "weight" => 80
-            )
-        );
+        try {
+            $testFriends = array(array("name" => "Test Friend 1", "age" => 25, "weight" => 80), array("name" => "Test Friend 2", "age" => "25", "weight" => 80));
+            $testArray = array(
+                "test_name" => "Test 1",
+                "test_user" => array(
+                    "name" => "TestUser",
+                    "friends" => $testFriends,
+                    "age" => "25",
+                    "weight" => 80
+                )
+            );
 
-        $mapper = new ObjectMapper();
+            $mapper = new ObjectMapper();
 
-        $output = $mapper->mapArrayToObject($testArray, TestClass::class, "test");
+            $output = $mapper->mapArrayToObject($testArray, TestClass::class, "test");
 
-        $this->assertEquals($testArray, $mapper->mapObjectToArray($output, "test"));
+            $this->assertEquals($testArray, $mapper->mapObjectToArray($output, "test"));
+        } catch (ObjectMappingException $e) {
+            var_dump($e->getValidationErrors());
+            throw $e;
+        }
     }
 
     public function testValidatorIsTriggered()
@@ -178,5 +208,6 @@ class ObjectMapperTest extends TestCase
         $this->expectException(ObjectMappingException::class);
 
         $mapper->mapArrayToObject($testArray, TestClass::class, "test");
+
     }
 }

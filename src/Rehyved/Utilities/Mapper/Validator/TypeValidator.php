@@ -24,7 +24,7 @@ class TypeValidator implements IObjectMapperValidator
 
     public function validate($value, $annotationParameter, $valueName = null)
     {
-        return !self::isOfValidType($value, $annotationParameter) ? new TypeValidationError($valueName, $value): null;
+        return !self::isOfValidType($value, $annotationParameter) ? new TypeValidationError($valueName, $value) : null;
     }
 
     private static function isOfValidType($value, $type)
@@ -33,7 +33,10 @@ class TypeValidator implements IObjectMapperValidator
         // See: http://php.net/manual/en/function.gettype.php
         $type = $type === "float" ? "double" : "" . $type;
 
-        return gettype($value) === $type || self::isOfCoercibleType($value, $type);
+        $valueType = gettype($value);
+        $valueType = $valueType !== "object" ? $valueType : get_class($value);
+
+        return $valueType === $type || self::isOfCoercibleType($value, $type);
     }
 
     private static function isOfCoercibleType($value, $type): bool
