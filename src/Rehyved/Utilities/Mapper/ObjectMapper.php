@@ -58,7 +58,7 @@ class ObjectMapper implements IObjectMapper
 
     public function __construct()
     {
-        $this->failFastValidation = true;
+        $this->failFastValidation = false;
         $this->lenientTypeCheck = true;
 
         // Add default set of validators
@@ -196,7 +196,7 @@ class ObjectMapper implements IObjectMapper
                             }
                         }
                     } else {
-                        $propertyValue = $this->doMapArrayToType($arrayValue, $propertyType, "", $propertyKey);
+                        $propertyValue = $this->doMapArrayToType($arrayValue, $propertyType, "", empty($parentKey) ? $propertyKey : $parentKey . "[$propertyKey]");
                     }
                 }
 
