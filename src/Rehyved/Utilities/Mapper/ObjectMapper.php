@@ -4,6 +4,7 @@ namespace Rehyved\Utilities\Mapper;
 
 use DocBlockReader\Reader;
 use Rehyved\Utilities\Mapper\Validator\EmailAddressValidator;
+use Rehyved\Utilities\Mapper\Validator\Error\TypeValidationError;
 use Rehyved\Utilities\Mapper\validator\IObjectMapperValidator;
 use Rehyved\Utilities\Mapper\Validator\MaxValidator;
 use Rehyved\Utilities\Mapper\Validator\MinValidator;
@@ -57,7 +58,7 @@ class ObjectMapper implements IObjectMapper
 
     public function __construct()
     {
-        $this->failFastValidation = false;
+        $this->failFastValidation = true;
         $this->lenientTypeCheck = true;
 
         // Add default set of validators
@@ -115,38 +116,42 @@ class ObjectMapper implements IObjectMapper
      * with a list of validation errors.
      *
      * @param array $array The array containing the data to map to the object.
-     * @param string $type The type of the object of which an instance should be created and mapped to.
+     * @param string $expectedType The type of the object of which an instance should be created and mapped to.
      * @param string $prefix The prefix used in the array for the keys of the object.
      * @return mixed An instance of the provided type.
      * @throws ObjectMappingException
      */
-    public function mapArrayToObject(array $array, string $type, string $prefix = "")
+    public function mapArrayToObject(array $array, string $expectedType, string $prefix = "")
     {
-        return $this->doMapArrayToType($array, $type, $prefix, "");
+        return $this->doMapArrayToType($array, $expectedType, $prefix, "");
     }
 
     /**
      * @throws ObjectMappingException
      */
-    private function doMapArrayToType($valueToMap, string $type, string $prefix, string $parentKey)
+    private function doMapArrayToType($valueToMap, string $expectedType, string $prefix, string $parentKey)
     {
         if ($valueToMap === null) {
             return null;
         }
 
-        if (!is_array($valueToMap) && TypeHelper::isBuiltInType($type)) {
-            if (TypeHelper::isOfCoercibleType($valueToMap, $type)) {
-                return TypeHelper::coerceType($valueToMap, $type);
+        if (!is_array($valueToMap) && TypeHelper::isBuiltInType($expectedType)) {
+            if (TypeHelper::isOfCoercibleType($valueToMap, $expectedType)) {
+                return TypeHelper::coerceType($valueToMap, $expectedType);
             } else {
-                throw new ObjectMappingException("The type for the value '$valueToMap' is of invalid type, was '" . gettype($valueToMap) . "', expected '$type'.");
+                $actualType = gettype($valueToMap);
+                throw new ObjectMappingException(
+                    "The type for the value '$valueToMap' is of invalid type, was '" . $actualType . "', expected '$expectedType'.",
+                    array(new TypeValidationError($parentKey, $valueToMap, $expectedType, $actualType))
+                );
             }
-        } else if (!is_array($valueToMap) && !TypeHelper::isBuiltInType($type) && get_class($valueToMap) === $type) {
+        } else if (!is_array($valueToMap) && !TypeHelper::isBuiltInType($expectedType) && get_class($valueToMap) === $expectedType) {
             return $valueToMap;
         }
 
         $array = (array)$valueToMap;
 
-        $objectToFill = new $type();
+        $objectToFill = new $expectedType();
         $reflectionClass = new \ReflectionClass($objectToFill);
 
         $objectProperties = $this->getObjectProperties($reflectionClass);
@@ -178,8 +183,8 @@ class ObjectMapper implements IObjectMapper
 
                         if ($arrayValue !== null) {
                             if (!is_array($arrayValue)) {
-                                $type = gettype($arrayValue);
-                                throw new ObjectMappingException("The type for the property '$propertyName' (identified in array as '$propertyKey') is of invalid type, was '$type', expected '" . $propertyType . "'.");
+                                $expectedType = gettype($arrayValue);
+                                throw new ObjectMappingException("The type for the property '$propertyName' (identified in array as '$propertyKey') is of invalid type, was '$expectedType', expected '" . $propertyType . "'.", array(new TypeValidationError($propertyName, $arrayValue)));
                             }
 
                             $valueType = substr($valueType, 0, strlen($valueType) - 2);
@@ -191,7 +196,7 @@ class ObjectMapper implements IObjectMapper
                             }
                         }
                     } else {
-                        $propertyValue = $this->doMapArrayToType($arrayValue, $propertyType, "", "");
+                        $propertyValue = $this->doMapArrayToType($arrayValue, $propertyType, "", $propertyKey);
                     }
                 }
 

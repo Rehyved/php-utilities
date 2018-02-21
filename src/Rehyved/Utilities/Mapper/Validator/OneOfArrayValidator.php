@@ -11,7 +11,7 @@ class OneOfArrayValidator implements IObjectMapperValidator
         return "oneOf";
     }
 
-    public function validate($value, $array, $valueName = null)
+    public function validate($value, $array, string $valueName)
     {
         if($value === null){
             return null;

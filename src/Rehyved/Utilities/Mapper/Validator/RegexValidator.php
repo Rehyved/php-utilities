@@ -10,7 +10,7 @@ class RegexValidator implements IObjectMapperValidator
         return "matchesRegex";
     }
 
-    public function validate($value, $regex, $valueName = null)
+    public function validate($value, $regex, string $valueName)
     {
         if($value === null){
             return null;

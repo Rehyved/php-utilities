@@ -3,28 +3,15 @@
 namespace Rehyved\Utilities\Mapper\Validator\Error;
 
 
-class OneOfArrayValidationError implements IValidationError
+class OneOfArrayValidationError extends ValidationError
 {
-    private $valueName;
-    private $value;
 
     private $array;
 
     public function __construct($valueName, $value, array $array){
-        $this->valueName = $valueName;
-        $this->value = $value;
+        parent::__construct($valueName, $value);
 
         $this->array = $array;
-    }
-
-    public function getValueName(): string
-    {
-        return $this->valueName;
-    }
-
-    public function getValue()
-    {
-        return $this->value;
     }
 
     /**

@@ -7,6 +7,8 @@ use PHPUnit\Framework\TestCase;
 
 class MinValidatorTest extends TestCase
 {
+    const TEST_VALUE_NAME = "valueName";
+
     public function testReturnsCorrectAnnotationString()
     {
         $minValidator = new MinValidator();
@@ -16,21 +18,21 @@ class MinValidatorTest extends TestCase
     public function testNullValidatesSuccess(){
         $minValidator = new MinValidator();
 
-        $this->assertNull($minValidator->validate(null, 1));
+        $this->assertNull($minValidator->validate(null, 1, self::TEST_VALUE_NAME));
     }
 
     public function testValidateShouldSucceedIfValueLargerOrEqual()
     {
         $minValidator = new MinValidator();
 
-        $this->assertNull($minValidator->validate(1, 1));
-        $this->assertNull($minValidator->validate(2, 1));
+        $this->assertNull($minValidator->validate(1, 1, self::TEST_VALUE_NAME));
+        $this->assertNull($minValidator->validate(2, 1, self::TEST_VALUE_NAME));
 
-        $this->assertNull($minValidator->validate("a", 1));
-        $this->assertNull($minValidator->validate("ab", 1));
+        $this->assertNull($minValidator->validate("a", 1, self::TEST_VALUE_NAME));
+        $this->assertNull($minValidator->validate("ab", 1, self::TEST_VALUE_NAME));
 
-        $this->assertNull($minValidator->validate(array("a"), 1));
-        $this->assertNull($minValidator->validate(array("a", "b"), 1));
+        $this->assertNull($minValidator->validate(array("a"), 1, self::TEST_VALUE_NAME));
+        $this->assertNull($minValidator->validate(array("a", "b"), 1, self::TEST_VALUE_NAME));
 
     }
 
@@ -38,10 +40,10 @@ class MinValidatorTest extends TestCase
     {
         $minValidator = new MinValidator();
 
-        $this->assertNotNull($minValidator->validate(1, 2));
+        $this->assertNotNull($minValidator->validate(1, 2, self::TEST_VALUE_NAME));
 
-        $this->assertNotNull($minValidator->validate("a", 2));
+        $this->assertNotNull($minValidator->validate("a", 2, self::TEST_VALUE_NAME));
 
-        $this->assertNotNull($minValidator->validate(array("a"), 2));
+        $this->assertNotNull($minValidator->validate(array("a"), 2, self::TEST_VALUE_NAME));
     }
 }

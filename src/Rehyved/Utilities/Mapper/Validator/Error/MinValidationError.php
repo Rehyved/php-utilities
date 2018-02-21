@@ -3,29 +3,16 @@
 namespace Rehyved\Utilities\Mapper\Validator\Error;
 
 
-class MinValidationError implements IValidationError
+class MinValidationError extends ValidationError
 {
-    private $valueName;
-    private $value;
 
     private $min;
 
     public function __construct($valueName, $value, int $min)
     {
-        $this->valueName = $valueName;
-        $this->value = $value;
+        parent::__construct($valueName, $value);
 
         $this->min = $min;
-    }
-
-    public function getValueName(): string
-    {
-        return $this->valueName;
-    }
-
-    public function getValue()
-    {
-        return $this->value;
     }
 
     /**

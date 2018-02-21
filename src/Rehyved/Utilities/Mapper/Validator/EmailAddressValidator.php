@@ -10,7 +10,7 @@ class EmailAddressValidator implements IObjectMapperValidator
         return "email";
     }
 
-    public function validate($value, $_, $valueName = null)
+    public function validate($value, $_, string $valueName)
     {
         if($value != null && !filter_var($value, FILTER_VALIDATE_EMAIL)){
             return new EmailAddressValidationError($valueName, $value);

@@ -3,7 +3,7 @@
 namespace Rehyved\Utilities\Mapper;
 
 use PHPUnit\Framework\TestCase;
-use Rehyved\Utilities\Mapper\Validator\Error\IValidationError;
+use Rehyved\Utilities\Mapper\Validator\Error\ValidationError;
 use Rehyved\Utilities\Mapper\Validator\MinValidator;
 use Rehyved\Utilities\Mapper\Validator\RequiredValidator;
 

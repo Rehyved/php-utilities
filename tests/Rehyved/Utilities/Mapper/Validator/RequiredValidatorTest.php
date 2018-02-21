@@ -7,6 +7,8 @@ use PHPUnit\Framework\TestCase;
 
 class RequiredValidatorTest extends TestCase
 {
+    const TEST_VALUE_NAME = "valueName";
+
     public function testReturnsCorrectAnnotationString(){
         $requiredValidator = new RequiredValidator();
         $this->assertEquals("required", $requiredValidator->getAnnotation());
@@ -14,18 +16,18 @@ class RequiredValidatorTest extends TestCase
 
     public function testValidateShouldSucceedIfHasValue(){
         $requiredValidator = new RequiredValidator();
-        $this->assertNull($requiredValidator->validate("", null));
-        $this->assertNull($requiredValidator->validate(true, null));
-        $this->assertNull($requiredValidator->validate(false, null));
-        $this->assertNull($requiredValidator->validate(-1, null));
-        $this->assertNull($requiredValidator->validate(0, null));
-        $this->assertNull($requiredValidator->validate(1, null));
-        $this->assertNull($requiredValidator->validate(array(), null));
-        $this->assertNull($requiredValidator->validate(new \stdClass(), null));
+        $this->assertNull($requiredValidator->validate("", null, self::TEST_VALUE_NAME));
+        $this->assertNull($requiredValidator->validate(true, null, self::TEST_VALUE_NAME));
+        $this->assertNull($requiredValidator->validate(false, null, self::TEST_VALUE_NAME));
+        $this->assertNull($requiredValidator->validate(-1, null, self::TEST_VALUE_NAME));
+        $this->assertNull($requiredValidator->validate(0, null, self::TEST_VALUE_NAME));
+        $this->assertNull($requiredValidator->validate(1, null, self::TEST_VALUE_NAME));
+        $this->assertNull($requiredValidator->validate(array(), null, self::TEST_VALUE_NAME));
+        $this->assertNull($requiredValidator->validate(new \stdClass(), null, self::TEST_VALUE_NAME));
     }
 
     public function testValidateShouldFailIfNull(){
     $requiredValidator = new RequiredValidator();
-    $this->assertNotNull($requiredValidator->validate(null, null));
+    $this->assertNotNull($requiredValidator->validate(null, null, self::TEST_VALUE_NAME));
 }
 }

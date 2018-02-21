@@ -11,7 +11,7 @@ class MinValidator implements IObjectMapperValidator
         return "min";
     }
 
-    public function validate($value, $minValue, $valueName = null)
+    public function validate($value, $minValue, string $valueName)
     {
         if($value === null){
             return null;

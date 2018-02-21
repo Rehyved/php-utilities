@@ -26,14 +26,14 @@ interface IObjectMapper
      * to map this sub type recursively from the provided array.
      *
      * @param array $array The array to fill the object with
-     * @param string $type The type of object to map to
+     * @param string $expectedType The type of object to map to
      * @param string $prefix The key prefix that should be used when determining the property values. Values in the
      * array with different prefixes are ignored.
      * @return mixed object of the provided type containing the values taken from the provided array
      * @throws ObjectMappingException when there was an error while validating the type of the provided values in the
      * array or if there was a failed validation of one of the IObjectMapperValidator validators.
      */
-    public function mapArrayToObject(array $array, string $type, string $prefix = "");
+    public function mapArrayToObject(array $array, string $expectedType, string $prefix = "");
 
 
     /**

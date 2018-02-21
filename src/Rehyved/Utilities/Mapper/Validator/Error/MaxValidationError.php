@@ -3,29 +3,15 @@
 namespace Rehyved\Utilities\Mapper\Validator\Error;
 
 
-class MaxValidationError implements IValidationError
+class MaxValidationError extends ValidationError
 {
-    private $valueName;
-    private $value;
-
     private $max;
 
     public function __construct($valueName, $value, int $max)
     {
-        $this->valueName = $valueName;
-        $this->value = $value;
+        parent::__construct($valueName, $value);
 
         $this->max = $max;
-    }
-
-    public function getValueName(): string
-    {
-        return $this->valueName;
-    }
-
-    public function getValue()
-    {
-        return $this->value;
     }
 
     /**

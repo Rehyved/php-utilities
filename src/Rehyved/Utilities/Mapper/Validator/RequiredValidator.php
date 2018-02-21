@@ -11,7 +11,7 @@ class RequiredValidator implements IObjectMapperValidator
         return "required";
     }
 
-    public function validate($value, $_, $valueName = null)
+    public function validate($value, $_, string $valueName)
     {
         if ($value === null) {
             return new RequiredValidationError($valueName, $value);

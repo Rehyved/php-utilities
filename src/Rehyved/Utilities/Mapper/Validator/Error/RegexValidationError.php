@@ -3,28 +3,14 @@
 namespace Rehyved\Utilities\Mapper\Validator\Error;
 
 
-class RegexValidationError implements IValidationError
+class RegexValidationError extends ValidationError
 {
-    private $valueName;
-    private $value;
-
     private $regex;
 
     public function __construct($valueName, $value, string $regex){
-        $this->valueName = $valueName;
-        $this->value = $value;
+        parent::__construct($valueName, $value);
 
         $this->regex = $regex;
-    }
-
-    public function getValueName(): string
-    {
-        return $this->valueName;
-    }
-
-    public function getValue()
-    {
-        return $this->value;
     }
 
     /**

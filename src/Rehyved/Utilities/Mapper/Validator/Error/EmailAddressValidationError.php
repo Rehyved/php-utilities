@@ -3,24 +3,10 @@
 namespace Rehyved\Utilities\Mapper\Validator\Error;
 
 
-class EmailAddressValidationError implements IValidationError
+class EmailAddressValidationError extends ValidationError
 {
-    private $valueName;
-    private $value;
-
     public function __construct($valueName, $value)
     {
-        $this->valueName = $valueName;
-        $this->value = $value;
-    }
-
-    public function getValueName(): string
-    {
-        return $this->valueName;
-    }
-
-    public function getValue()
-    {
-        return $this->value;
+        parent::__construct($valueName, $value);
     }
 }

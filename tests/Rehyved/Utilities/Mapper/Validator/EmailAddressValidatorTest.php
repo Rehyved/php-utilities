@@ -7,6 +7,8 @@ use PHPUnit\Framework\TestCase;
 
 class EmailAddressValidatorTest extends TestCase
 {
+    const TEST_VALUE_NAME = "valueName";
+
     public function testReturnsCorrectAnnotationString(){
         $emailAddressValidator = new EmailAddressValidator();
         $this->assertEquals("email", $emailAddressValidator->getAnnotation());
@@ -14,16 +16,17 @@ class EmailAddressValidatorTest extends TestCase
 
     public function testValidEmailAddressOrNullShouldValidate(){
         $validator = new EmailAddressValidator();
-        $this->assertNull($validator->validate("test@example.org", null));
-        $this->assertNull($validator->validate(null, null));
+        $this->assertNull($validator->validate("test@example.org", null, self::TEST_VALUE_NAME));
+        $this->expectException(\TypeError::class);
+        $this->assertNull($validator->validate(null, null, null));
     }
 
     public function testInvalidEmailAddressShouldReturnValidationError(){
         $validator = new EmailAddressValidator();
-        $this->assertNotNull(1, $validator->validate("@example.org", null));
-        $this->assertNotNull(1, $validator->validate("example.org", null));
-        $this->assertNotNull(1, $validator->validate("test@exampleorg", null));
-        $this->assertNotNull(1, $validator->validate("testexampleorg", null));
-        $this->assertNotNull(1, $validator->validate("", null));
+        $this->assertNotNull(1, $validator->validate("@example.org", null, self::TEST_VALUE_NAME));
+        $this->assertNotNull(1, $validator->validate("example.org", null, self::TEST_VALUE_NAME));
+        $this->assertNotNull(1, $validator->validate("test@exampleorg", null, self::TEST_VALUE_NAME));
+        $this->assertNotNull(1, $validator->validate("testexampleorg", null, self::TEST_VALUE_NAME));
+        $this->assertNotNull(1, $validator->validate("", null, self::TEST_VALUE_NAME));
     }
 }

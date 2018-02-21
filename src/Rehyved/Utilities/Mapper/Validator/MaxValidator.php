@@ -11,7 +11,7 @@ class MaxValidator implements IObjectMapperValidator
         return "max";
     }
 
-    public function validate($value, $maxValue, $valueName = null)
+    public function validate($value, $maxValue, string $valueName)
     {
         if($value === null){
             return null;

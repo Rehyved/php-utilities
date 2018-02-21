@@ -23,7 +23,7 @@ class TypeValidator implements IObjectMapperValidator
         return self::ANNOTATION;
     }
 
-    public function validate($value, $annotationParameter, $valueName = null)
+    public function validate($value, $annotationParameter, string $valueName)
     {
         return !TypeHelper::isOfValidType($value, $annotationParameter) ? new TypeValidationError($valueName, $value) : null;
     }

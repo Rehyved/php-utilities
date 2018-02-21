@@ -3,23 +3,35 @@
 namespace Rehyved\Utilities\Mapper\Validator\Error;
 
 
-class TypeValidationError implements IValidationError
+class TypeValidationError extends ValidationError
 {
-    private $valueName;
-    private $value;
+    private $expectedType;
+    private $actualType;
 
-    public function __construct($valueName, $value){
-        $this->valueName = $valueName;
-        $this->value = $value;
+    public function __construct($valueName, $value, string $expectedType, string $actualType){
+        parent::__construct($valueName, $value);
+
+        $this->expectedType = $expectedType;
+        $this->actualType = $actualType;
     }
 
-    public function getValueName(): string
+    /**
+     * Returns the type that was expected in the mapping.
+     * @return string expected type
+     */
+    public function getExpectedType() : string
     {
-        return $this->valueName;
+        return $this->expectedType;
     }
 
-    public function getValue()
+    /**
+     * Returns the actual type that was encountered during the mapping
+     * @return string actual type
+     */
+    public function getActualType() :string
     {
-        return $this->value;
+        return $this->actualType;
     }
+
+
 }
