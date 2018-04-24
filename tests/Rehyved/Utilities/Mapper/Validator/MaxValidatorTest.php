@@ -4,6 +4,8 @@ namespace Rehyved\Utilities\Mapper\Validator;
 
 
 use PHPUnit\Framework\TestCase;
+use Rehyved\Utilities\Mapper\Validator\Error\MaxLengthValidationError;
+use Rehyved\Utilities\Mapper\Validator\Error\MaxValidationError;
 
 class MaxValidatorTest extends TestCase
 {
@@ -41,10 +43,16 @@ class MaxValidatorTest extends TestCase
     {
         $maxValidator = new MaxValidator();
 
-        $this->assertNotNull($maxValidator->validate(2, 1, self::TEST_VALUE_NAME));
+        $numericMaxValidationError = $maxValidator->validate(2, 1, self::TEST_VALUE_NAME);
+        $this->assertNotNull($numericMaxValidationError);
+        $this->assertInstanceOf(MaxValidationError::class, $numericMaxValidationError);
 
-        $this->assertNotNull($maxValidator->validate("ab", 1, self::TEST_VALUE_NAME));
+        $stringMaxValidationError = $maxValidator->validate("ab", 1, self::TEST_VALUE_NAME);
+        $this->assertNotNull($stringMaxValidationError);
+        $this->assertInstanceOf(MaxLengthValidationError::class, $stringMaxValidationError);
 
-        $this->assertNotNull($maxValidator->validate(array("a", "b"), 1, self::TEST_VALUE_NAME));
+        $arrayMaxValidationError = $maxValidator->validate(array("a", "b"), 1, self::TEST_VALUE_NAME);
+        $this->assertNotNull($arrayMaxValidationError);
+        $this->assertInstanceOf(MaxLengthValidationError::class, $arrayMaxValidationError);
     }
 }

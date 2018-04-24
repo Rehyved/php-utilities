@@ -196,6 +196,7 @@ class ObjectMapper implements IObjectMapper
                             }
                         }
                     } else {
+
                         $propertyValue = $this->doMapArrayToType($arrayValue, $propertyType, "", empty($parentKey) ? $propertyKey : $parentKey . "[$propertyKey]");
                     }
                 }

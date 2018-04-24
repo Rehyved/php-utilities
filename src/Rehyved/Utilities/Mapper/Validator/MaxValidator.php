@@ -2,6 +2,7 @@
 
 namespace Rehyved\Utilities\Mapper\Validator;
 
+use Rehyved\Utilities\Mapper\Validator\Error\MaxLengthValidationError;
 use Rehyved\Utilities\Mapper\Validator\Error\MaxValidationError;
 
 class MaxValidator implements IObjectMapperValidator
@@ -19,8 +20,9 @@ class MaxValidator implements IObjectMapperValidator
 
         if ((is_array($value) && count($value) > $maxValue)
             || (is_string($value) && \mb_strlen($value) > $maxValue)
-            || (\is_numeric($value) && $value > $maxValue)
         ) {
+            return new MaxLengthValidationError($valueName, $value, $maxValue);
+        }elseif(is_numeric($value) && $value > $maxValue){
             return new MaxValidationError($valueName, $value, $maxValue);
         }
         return null;
