@@ -4,6 +4,8 @@ namespace Rehyved\Utilities\Mapper\Validator;
 
 
 use PHPUnit\Framework\TestCase;
+use Rehyved\Utilities\Mapper\Validator\Error\MinLengthValidationError;
+use Rehyved\Utilities\Mapper\Validator\Error\MinValidationError;
 
 class MinValidatorTest extends TestCase
 {
@@ -15,7 +17,8 @@ class MinValidatorTest extends TestCase
         $this->assertEquals("min", $minValidator->getAnnotation());
     }
 
-    public function testNullValidatesSuccess(){
+    public function testNullValidatesSuccess()
+    {
         $minValidator = new MinValidator();
 
         $this->assertNull($minValidator->validate(null, 1, self::TEST_VALUE_NAME));
@@ -40,10 +43,16 @@ class MinValidatorTest extends TestCase
     {
         $minValidator = new MinValidator();
 
-        $this->assertNotNull($minValidator->validate(1, 2, self::TEST_VALUE_NAME));
+        $numericMinValidationError = $minValidator->validate(1, 2, self::TEST_VALUE_NAME);
+        $this->assertNotNull($numericMinValidationError);
+        $this->assertInstanceOf(MinValidationError::class, $numericMinValidationError);
 
-        $this->assertNotNull($minValidator->validate("a", 2, self::TEST_VALUE_NAME));
+        $stringMinValidationError = $minValidator->validate("a", 2, self::TEST_VALUE_NAME);
+        $this->assertNotNull($stringMinValidationError);
+        $this->assertInstanceOf(MinLengthValidationError::class, $stringMinValidationError);
 
-        $this->assertNotNull($minValidator->validate(array("a"), 2, self::TEST_VALUE_NAME));
+        $arrayMinValidationError = $minValidator->validate(array("a"), 2, self::TEST_VALUE_NAME);
+        $this->assertNotNull($arrayMinValidationError);
+        $this->assertInstanceOf(MinLengthValidationError::class, $arrayMinValidationError);
     }
 }
