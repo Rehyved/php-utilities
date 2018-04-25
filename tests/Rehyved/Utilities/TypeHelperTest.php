@@ -349,4 +349,153 @@ class TypeHelperTest extends TestCase
         }
     }
 
+    public function isTypedArrayTypeProvider()
+    {
+        return [
+            ["int[]", true],
+            [TestClass::class . "[]", true],
+
+            ["array", false],
+            ["int", false],
+            [TestClass::class, false],
+        ];
+    }
+
+    /**
+     * @dataProvider isTypedArrayTypeProvider
+     * @param string $type
+     * @param bool $expectedResult
+     */
+    public function testIsTypedArrayType(string $type, bool $expectedResult)
+    {
+        $this->assertEquals($expectedResult, TypeHelper::isTypedArrayType($type));
+    }
+
+    public function isBuiltInTypeProvider()
+    {
+        return [
+            ['mixed', true],
+            ['float', true],
+            ['int', true],
+            ['string', true],
+            ['array', true],
+            ['bool', true],
+
+            [TestClass::class, false],
+            ["", false],
+            ["a", false],
+            [true, false],
+        ];
+    }
+
+    /**
+     * @dataProvider isBuiltInTypeProvider
+     * @param $type
+     * @param $expectedResult
+     */
+    public function testIsBuiltInType($type, $expectedResult)
+    {
+        $this->assertEquals($expectedResult, TypeHelper::isBuiltInType($type));
+    }
+
+    public function getTypeProvider()
+    {
+        return [
+            ["", 'string'],
+            ["a", 'string'],
+            [1, 'int'],
+            [0.5, 'float'],
+            [true, 'bool'],
+            [false, 'bool'],
+            [new TestClass(), TestClass::class],
+            [array(), 'array'],
+            [array(1), 'int[]'],
+            [array(1, ""), 'mixed[]'],
+            [array(new TestClass()), TestClass::class . '[]'],
+            [array(array(1)), 'int[][]'],
+            [array(1, array(1)), 'mixed[]']
+        ];
+    }
+
+    /**
+     * @dataProvider getTypeProvider
+     * @param $value
+     * @param $expectedType
+     */
+    public function testGetType($value, $expectedType)
+    {
+        $this->assertEquals($expectedType, TypeHelper::getType($value));
+    }
+
+    public function testBooleanStringValue()
+    {
+        $this->assertEquals("true", TypeHelper::booleanStringValue(true));
+        $this->assertEquals("false", TypeHelper::booleanStringValue(false));
+    }
+
+    public function toBooleanValueProvider()
+    {
+        return [
+            // Passthrough:
+            [null, null],
+            [true, true],
+            [false, false],
+
+            // Coercion positive:
+            [1, true],
+            [0, false],
+            ["true", true],
+            ["TRUE", true],
+            ["True", true],
+            ["false", false],
+            ["FALSE", false],
+            ["False", false],
+
+            // Coercion negative:
+            ["", false, TypeCoercionException::class],
+            ["a", false, TypeCoercionException::class],
+            [2, null, TypeCoercionException::class],
+            [-1, null, TypeCoercionException::class],
+        ];
+    }
+
+    /**
+     * @dataProvider toBooleanValueProvider
+     * @param $value
+     * @param $expectedResult
+     */
+    public function testToBooleanValue($value, $expectedResult, $expectedExceptionType = null)
+    {
+        if ($expectedExceptionType === null) {
+            $this->assertEquals($expectedResult, TypeHelper::toBooleanValue($value));
+        } else {
+            $this->expectException($expectedExceptionType);
+            TypeHelper::toBooleanValue($value);
+        }
+    }
+
+    public function mapToBuiltInTypeProvider()
+    {
+        return [
+            ['double', 'float'],
+            ['integer', 'int'],
+            ['boolean', 'bool'],
+            ['string', 'string'],
+            ['array', 'array'],
+            ['mixed', 'mixed'],
+            [TestClass::class, TestClass::class],
+            ['int[]', 'int[]'],
+        ];
+    }
+
+    /**
+     * @dataProvider mapToBuiltInTypeProvider
+     * @param $type
+     * @param $expectedBuiltInType
+     */
+    public function testMapToBuiltInType($type, $expectedBuiltInType)
+    {
+        $this->assertEquals($expectedBuiltInType, TypeHelper::mapToBuiltInType($type));
+    }
+
 }

@@ -31,7 +31,7 @@ class TypeHelper
             return true;
         }
 
-        if (self::isArrayType($type)) {
+        if (self::isTypedArrayType($type)) {
             return self::isValidArrayOfType($value, $type);
         }
 
@@ -134,7 +134,7 @@ class TypeHelper
             return null;
         }
 
-        if (self::isArrayType($type) && self::isValidArrayOfType($value, $type)) {
+        if (self::isTypedArrayType($type) && self::isValidArrayOfType($value, $type)) {
             $arrayType = self::getTypeOfArrayType($type);
             return array_map(function ($value) use ($arrayType) {
                 return self::coerceType($value, $arrayType);
@@ -174,7 +174,7 @@ class TypeHelper
      * @param $type string the type to check
      * @return bool true if the type contains [] to indicate it is an array type, false if it does not
      */
-    public static function isArrayType(string $type): bool
+    public static function isTypedArrayType(string $type): bool
     {
         return StringHelper::endsWith($type, "[]");
     }
@@ -197,11 +197,10 @@ class TypeHelper
      * @param $type string the type to check
      * @return bool true if the type is a primitive built-in type or mixed.
      */
-    public static function isBuiltInType($type)
+    public static function isBuiltInType(string $type)
     {
         switch ($type) {
             case "mixed":
-            case "double":
             case "float":
             case "int":
             case "string":
@@ -219,7 +218,7 @@ class TypeHelper
      */
     public static function getType($value)
     {
-        if ($value == null) {
+        if ($value === null) {
             return null;
         }
 
@@ -228,15 +227,17 @@ class TypeHelper
             $arrayType = null;
             foreach ($value as $entry) {
                 if ($arrayType == null) {
-                    $entryType = gettype($entry);
+                    $arrayType = self::getType($entry);
                 } else {
                     return "mixed[]";
                 }
             }
             return $arrayType . "[]";
+        } elseif ($type == 'object') {
+            return get_class($value);
         }
 
-        return $type;
+        return self::mapToBuiltInType($type);
     }
 
 
@@ -280,5 +281,28 @@ class TypeHelper
             }
         }
         throw new TypeCoercionException("Could not coerce to type 'bool'.");
+    }
+
+    /**
+     * Maps the types returned from gettype() to the matching built in types of PHP (used for type declaration in
+     * methods for example)
+     * @param string $type the type to map
+     * @return string the mapped type or the provided type if it cannot be mapped to a built-in type.
+     */
+    public static function mapToBuiltInType(string $type)
+    {
+        switch ($type) {
+            case "double":
+                return 'float';
+            case "integer":
+                return 'int';
+            case 'boolean':
+                return 'bool';
+            //case "string":
+            //case "mixed":
+            //case "array":
+            default:
+                return $type;
+        }
     }
 }

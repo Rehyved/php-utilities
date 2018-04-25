@@ -174,7 +174,7 @@ class ObjectMapper implements IObjectMapper
                 if (array_key_exists($propertyKey, $array)) {
                     $arrayValue = $array[$propertyKey];
 
-                    if (array_key_exists(TypeValidator::ANNOTATION, $annotations) && TypeHelper::isArrayType($annotations[TypeValidator::ANNOTATION])) {
+                    if (array_key_exists(TypeValidator::ANNOTATION, $annotations) && TypeHelper::isTypedArrayType($annotations[TypeValidator::ANNOTATION])) {
                         $valueType = $annotations[TypeValidator::ANNOTATION];
 
                         if (empty($valueType)) {
@@ -315,7 +315,7 @@ class ObjectMapper implements IObjectMapper
 
             if (is_array($value)
                 && array_key_exists(TypeValidator::ANNOTATION, $annotations)
-                && TypeHelper::isArrayType($annotations[TypeValidator::ANNOTATION])
+                && TypeHelper::isTypedArrayType($annotations[TypeValidator::ANNOTATION])
             ) {
                 $items = array();
                 foreach ($value as $index => $item) {
