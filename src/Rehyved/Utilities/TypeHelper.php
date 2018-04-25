@@ -51,7 +51,7 @@ class TypeHelper
         if (gettype($values) !== "array") {
             return false;
         }
-        $valueType = self::getTypeOfArrayType($type);
+        $valueType = self::getTypeOfTypedArrayType($type);
         foreach ($values as $value) {
             if (!self::isOfValidType($value, $valueType)) {
                 return false;
@@ -135,7 +135,7 @@ class TypeHelper
         }
 
         if (self::isTypedArrayType($type) && self::isValidArrayOfType($value, $type)) {
-            $arrayType = self::getTypeOfArrayType($type);
+            $arrayType = self::getTypeOfTypedArrayType($type);
             return array_map(function ($value) use ($arrayType) {
                 return self::coerceType($value, $arrayType);
             }, $value);
@@ -186,7 +186,7 @@ class TypeHelper
      * @param string $type the array type to get the type from.
      * @return string The type of the array type or the provided type if it was not an array type.
      */
-    public static function getTypeOfArrayType(string $type): string
+    public static function getTypeOfTypedArrayType(string $type): string
     {
         return str_replace("[]", "", $type);
     }
