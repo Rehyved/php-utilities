@@ -23,10 +23,10 @@ class EmailAddressValidatorTest extends TestCase
 
     public function testInvalidEmailAddressShouldReturnValidationError(){
         $validator = new EmailAddressValidator();
-        $this->assertNotNull(1, $validator->validate("@example.org", null, self::TEST_VALUE_NAME));
-        $this->assertNotNull(1, $validator->validate("example.org", null, self::TEST_VALUE_NAME));
-        $this->assertNotNull(1, $validator->validate("test@exampleorg", null, self::TEST_VALUE_NAME));
-        $this->assertNotNull(1, $validator->validate("testexampleorg", null, self::TEST_VALUE_NAME));
-        $this->assertNotNull(1, $validator->validate("", null, self::TEST_VALUE_NAME));
+        $this->assertNotNull($validator->validate("@example.org", null, self::TEST_VALUE_NAME));
+        $this->assertNotNull($validator->validate("example.org", null, self::TEST_VALUE_NAME));
+        $this->assertNotNull($validator->validate("test@exampleorg", null, self::TEST_VALUE_NAME));
+        $this->assertNotNull($validator->validate("testexampleorg", null, self::TEST_VALUE_NAME));
+        $this->assertNotNull($validator->validate("", null, self::TEST_VALUE_NAME));
     }
 }
